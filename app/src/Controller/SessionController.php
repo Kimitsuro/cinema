@@ -16,11 +16,19 @@ final class SessionController extends AbstractController
         // Получение всех сеансов из базы данных
         $sessions = $sessionRepository->findAll();
 
+        // Текущая дата и время
+        $currentDateTime = new \DateTime('now', new \DateTimeZone('Europe/Moscow'));
+
         // Получение уникальных дат из сеансов
         $availableDates = [];
         foreach ($sessions as $session) {
-            $date = $session->getSessionData()->format('Y-m-d');
-            $availableDates[$date] = new \DateTime($date); // Используем ключи для уникальности
+            $sessionDateTime = $session->getSessionData();
+            // Пропускаем сеансы, которые уже прошли
+            if ($sessionDateTime < $currentDateTime) {
+                continue;
+            }
+            $date = $sessionDateTime->format('Y-m-d');
+            $availableDates[$date] = new \DateTime($date);
         }
 
         // Преобразуем ключи в массив значений

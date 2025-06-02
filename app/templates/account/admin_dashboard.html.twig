@@ -39,12 +39,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-linck" data-section="pricing">
-                            <span class="nav-icon">💰</span>
-                            <span>Ценовая политика</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a href="#" class="nav-linck" data-section="reports">
                             <span class="nav-icon">📈</span>
                             <span>Отчёты</span>
@@ -62,27 +56,29 @@
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number">{{ '156' }}</div>
+                        <div class="stat-number">{{ stats.totalMovies }}</div>
                         <div class="stat-label">Всего фильмов</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '3' }}</div>
+                        <div class="stat-number">{{ stats.activeHalls }}</div>
                         <div class="stat-label">Активных залов</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '8' }}</div>
+                        <div class="stat-number">{{ stats.totalEmployees }}</div>
                         <div class="stat-label">Сотрудников</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '2.4М' }}</div>
-                        <div class="stat-label">Выручка (₽)</div>
+                        <div class="stat-number">{{ stats.totalRevenue|number_format(0, '.', ' ') }} ₽</div>
+                       
+
+                        <div class="stat-label">Выручка</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '12,450' }}</div>
+                        <div class="stat-number">{{ stats.ticketsSold }}</div>
                         <div class="stat-label">Билетов продано</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '87%' }}</div>
+                        <div class="stat-number">{{ stats.averageOccupancy }}%</div>
                         <div class="stat-label">Средняя заполняемость</div>
                     </div>
                 </div>
@@ -113,23 +109,23 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for i in 1..8 %}
+                            {% for movie in movies %}
                             <tr>
                                 <td>
-                                    <img src="/placeholder.svg?height=60&width=40" alt="Постер" style="border-radius: 4px;">
+                                    <img src="{{ movie.moviePoster ?: '/placeholder.svg?height=60&width=40' }}" alt="Постер" style="border-radius: 4px;">
                                 </td>
-                                <td>{{ ['Загадочный лес Сакуры', 'Тайна горы Фудзи', 'Весенний дождь', 'Осенние листья'][i % 4] }}</td>
-                                <td>{{ ['Драма', 'Триллер', 'Романтика', 'Комедия'][i % 4] }}</td>
-                                <td>{{ 120 + (i * 5) }} мин</td>
-                                <td>{{ [12, 16, 18, 6][i % 4] }}+</td>
+                                <td>{{ movie.movieTitle }}</td>
+                                <td>{{ movie.movieGenre }}</td>
+                                <td>{{ movie.movieDuration }} мин</td>
+                                <td>{{ movie.movieAge }}+</td>
                                 <td>
-                                    <span class="status-badge {{ ['active', 'upcoming', 'inactive'][i % 3] }}">
-                                        {{ ['Активный', 'Скоро', 'Неактивный'][i % 3] }}
+                                    <span class="status-badge {{ movie.status }}">
+                                        {{ movie.status == 'current' ? 'Активный' : movie.status == 'upcoming' ? 'Скоро' : 'Неактивный' }}
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-secondary btn-small" onclick="editMovie({{ i }})">Изменить</button>
-                                    <button class="btn btn-danger btn-small" onclick="deleteMovie({{ i }})">Удалить</button>
+                                    <button class="btn btn-secondary btn-small" onclick="editMovie({{ movie.id }})">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteMovie({{ movie.id }})">Удалить</button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -150,16 +146,16 @@
                         </div>
                     </div>
                     
-                    {% for i in 1..3 %}
+                    {% for hall in halls %}
                     <div class="hall-config">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                             <div>
-                                <h3 style="color: var(--accent-gold);">Зал {{ i }} - {{ ['2D', '3D', 'IMAX'][i-1] }}</h3>
-                                <p style="color: var(--text-secondary);">Вместимость: 30 мест • {{ ['Стандартный', 'Объёмный', 'Премиум'][i-1] }} формат</p>
+                                <h3 style="color: var(--accent-gold);">Зал {{ hall.id }} - {{ hall.hallType }}</h3>
+                                <p style="color: var(--text-secondary);">Вместимость: {{ hall.hallCapacity }} мест • {{ hall.hallType == '2D' ? 'Стандартный' : hall.hallType == '3D' ? 'Объёмный' : 'Премиум' }} формат</p>
                             </div>
                             <div>
-                                <button class="btn btn-secondary btn-small" onclick="editHall({{ i }})">Настроить</button>
-                                <button class="btn btn-danger btn-small" onclick="deleteHall({{ i }})">Удалить</button>
+                                <button class="btn btn-secondary btn-small" onclick="editHall({{ hall.id }})">Настроить</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteHall({{ hall.id }})">Удалить</button>
                             </div>
                         </div>
                         
@@ -168,13 +164,13 @@
                                 ЭКРАН
                             </div>
                             <div class="seat-grid">
-                                {% for j in 1..30 %}
-                                <div class="seat-preview {{ j <= 10 ? 'economy' : 'regular' }}">{{ j }}</div>
+                                {% for seat in hall.seats %}
+                                <div class="seat-preview {{ seat.seatType }}">{{ seat.searNumber }}</div>
                                 {% endfor %}
                             </div>
                             <div style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
-                                <span style="color: #4a90e2;">■</span> Эконом (10 мест) • 
-                                <span style="color: #50c878;">■</span> Обычные (20 мест)
+                                <span style="color: #4a90e2;">■</span> Эконом ({{ hall.seats|filter(seat => seat.seatType == 'economy')|length }} мест) • 
+                                <span style="color: #50c878;">■</span> Обычные ({{ hall.seats|filter(seat => seat.seatType == 'regular')|length }} мест)
                             </div>
                         </div>
                     </div>
@@ -200,24 +196,22 @@
                                 <th>Имя</th>
                                 <th>Логин</th>
                                 <th>Должность</th>
-                                <th>Дата найма</th>
                                 <th>Статус</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for i in 1..6 %}
+                            {% for employee in employees %}
                             <tr>
-                                <td>{{ ['Иван Петров', 'Мария Сидорова', 'Алексей Козлов', 'Елена Волкова', 'Дмитрий Орлов', 'Анна Лебедева'][i-1] }}</td>
-                                <td>{{ ['ivan.petrov', 'maria.sidorova', 'alexey.kozlov', 'elena.volkova', 'dmitry.orlov', 'anna.lebedeva'][i-1] }}</td>
-                                <td>{{ ['Менеджер', 'Кассир', 'Техник', 'Менеджер', 'Охранник', 'Уборщица'][i-1] }}</td>
-                                <td>{{ "now"|date_modify("-" ~ (i * 30) ~ " days")|date('d.m.Y') }}</td>
+                                <td>{{ employee.employeeName }}</td>
+                                <td>{{ employee.employeeLogin }}</td>
+                                <td>{{ employee.employeePosition }}</td>
                                 <td>
                                     <span class="status-badge active">Активный</span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-secondary btn-small" onclick="editEmployee({{ i }})">Изменить</button>
-                                    <button class="btn btn-danger btn-small" onclick="deleteEmployee({{ i }})">Удалить</button>
+                                    <button class="btn btn-secondary btn-small" onclick="editEmployee('{{ employee.employeeLogin }}')">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteEmployee('{{ employee.employeeLogin }}')">Удалить</button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -235,12 +229,12 @@
                         <div class="pricing-title">Базовые цены по типам мест</div>
                         <div class="price-item">
                             <span class="price-label">Эконом места</span>
-                            <input type="number" class="price-input" value="350">
+                            <input type="number" class="price-input" value="{{ pricing.economyPrice ?? 350 }}">
                             <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
                         </div>
                         <div class="price-item">
                             <span class="price-label">Обычные места</span>
-                            <input type="number" class="price-input" value="400">
+                            <input type="number" class="price-input" value="{{ pricing.regularPrice ?? 400 }}">
                             <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
                         </div>
                     </div>
@@ -253,19 +247,20 @@
                         </div>
                         <div class="price-item">
                             <span class="price-label">3D формат</span>
-                            <input type="number" class="price-input" value="100">
+                            <input type="number" class="price-input" value="{{ pricing.format3DPrice ?? 100 }}">
                             <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
                         </div>
                         <div class="price-item">
                             <span class="price-label">IMAX формат</span>
-                            <input type="number" class="price-input" value="200">
+                            <input type="number" class="price-input" value="{{ pricing.imaxPrice ?? 200 }}">
                             <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
                         </div>
                     </div>
+                </div>
 
                 <div style="text-align: center; margin-top: 2rem;">
-                    <button class="btn btn-primary">Сохранить изменения</button>
-                    <button class="btn btn-secondary">Сбросить к умолчанию</button>
+                    <button class="btn btn-primary" onclick="savePricing()">Сохранить изменения</button>
+                    <button class="btn btn-secondary" onclick="resetPricing()">Сбросить к умолчанию</button>
                 </div>
             </section>
 
@@ -274,36 +269,36 @@
                 <h1 class="section-title">Генерация отчётов</h1>
                 
                 <div class="report-filters">
-                    <select class="form-select" style="width: auto;">
-                        <option>Последние 7 дней</option>
-                        <option>Последний месяц</option>
-                        <option>Последние 3 месяца</option>
-                        <option>Текущий год</option>
-                        <option>Произвольный период</option>
+                    <select class="form-select" style="width: auto;" id="reportPeriod">
+                        <option value="7 days">Последние 7 дней</option>
+                        <option value="1 month">Последний месяц</option>
+                        <option value="3 months">Последние 3 месяца</option>
+                        <option value="1 year">Текущий год</option>
+                        <option value="custom">Произвольный период</option>
                     </select>
-                    <input type="date" class="form-input" style="width: auto;" value="{{ "now"|date_modify("-7 days")|date('Y-m-d') }}">
-                    <input type="date" class="form-input" style="width: auto;" value="{{ "now"|date('Y-m-d') }}">
-                    <button class="btn btn-primary">Обновить отчёт</button>
+                    <input type="date" class="form-input" style="width: auto;" id="reportStartDate" value="{{ "now"|date_modify("-7 days")|date('Y-m-d') }}">
+                    <input type="date" class="form-input" style="width: auto;" id="reportEndDate" value="{{ "now"|date('Y-m-d') }}">
+                    <button class="btn btn-primary" onclick="updateReport()">Обновить отчёт</button>
                     <button class="btn btn-success">📊 Экспорт Excel</button>
-                    <button class="btn btn-secondary">📄 Экспорт PDF</button>
+                    <button class="btn btn-secondary export-pdf-btn">📄 Экспорт PDF</button>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number">{{ '1,245,600' }}</div>
-                        <div class="stat-label">Общая выручка (₽)</div>
+                        <div class="stat-number">{{ reportStats.totalRevenue|number_format(0, '.', ' ') }} ₽</div>
+                        <div class="stat-label">Общая выручка</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '3,124' }}</div>
+                        <div class="stat-number">{{ reportStats.ticketsSold }}</div>
                         <div class="stat-label">Билетов продано</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '89%' }}</div>
+                        <div class="stat-number">{{ reportStats.averageOccupancy }}%</div>
                         <div class="stat-label">Средняя заполняемость</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ '398' }}</div>
-                        <div class="stat-label">Средний чек (₽)</div>
+                        <div class="stat-number">{{ reportStats.averageCheck }} ₽</div>
+                        <div class="stat-label">Средний чек</div>
                     </div>
                 </div>
 
@@ -322,13 +317,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for i in 1..5 %}
+                            {% for report in movieReports %}
                             <tr>
-                                <td>{{ ['Загадочный лес Сакуры', 'Тайна горы Фудзи', 'Весенний дождь', 'Осенние листья', 'Зимняя сказка'][i-1] }}</td>
-                                <td>{{ 15 + (i * 3) }}</td>
-                                <td>{{ 450 + (i * 120) }}</td>
-                                <td>{{ (450 + (i * 120)) * 400 }} ₽</td>
-                                <td>{{ 85 + i }}%</td>
+                                <td>{{ report.movieTitle }}</td>
+                                <td>{{ report.sessionCount }}</td>
+                                <td>{{ report.ticketsSold }}</td>
+                                <td>{{ report.revenue|number_format(0, '.', ' ') }} ₽</td>
+                                <td>{{ report.occupancy }}%</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -343,10 +338,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="movieModalTitle">Добавить фильм</h3>
-                <button class="modal-close" onclick="closeMovieModal()">&times;</button>
+                <button class="modal-close" onclick="closeMovieModal()">×</button>
             </div>
             
             <form id="movieForm">
+                <input type="hidden" id="movie_id">
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="movie_title">Название фильма</label>
@@ -357,12 +353,12 @@
                         <label class="form-label" for="movie_genre">Жанр</label>
                         <select id="movie_genre" class="form-select" required>
                             <option value="">Выберите жанр</option>
-                            <option value="drama">Драма</option>
-                            <option value="comedy">Комедия</option>
-                            <option value="action">Боевик</option>
-                            <option value="thriller">Триллер</option>
-                            <option value="romance">Романтика</option>
-                            <option value="horror">Ужасы</option>
+                            <option value="Драма">Драма</option>
+                            <option value="Комедия">Комедия</option>
+                            <option value="Боевик">Боевик</option>
+                            <option value="Триллер">Триллер</option>
+                            <option value="Романтика">Романтика</option>
+                            <option value="Ужасы">Ужасы</option>
                         </select>
                     </div>
                     
@@ -390,8 +386,6 @@
                             <option value="2D">2D</option>
                             <option value="3D">3D</option>
                             <option value="IMAX">IMAX</option>
-                            <option value="2D, 3D">2D, 3D</option>
-                            <option value="2D, 3D, IMAX">2D, 3D, IMAX</option>
                         </select>
                     </div>
                     
@@ -399,16 +393,15 @@
                         <label class="form-label" for="movie_status">Статус</label>
                         <select id="movie_status" class="form-select" required>
                             <option value="">Выберите статус</option>
-                            <option value="active">Активный</option>
+                            <option value="current">Активный</option>
                             <option value="upcoming">Скоро</option>
-                            <option value="inactive">Неактивный</option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="movie_poster">URL постера</label>
-                    <input type="url" id="movie_poster" class="form-input">
+                    <input type="input" id="movie_poster" class="form-input">
                 </div>
                 
                 <div class="form-group">
@@ -429,10 +422,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="hallModalTitle">Настройка зала</h3>
-                <button class="modal-close" onclick="closeHallModal()">&times;</button>
+                <button class="modal-close" onclick="closeHallModal()">×</button>
             </div>
             
             <form id="hallForm">
+                <input type="hidden" id="hall_id">
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="hall_type">Тип зала</label>
@@ -487,10 +481,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="employeeModalTitle">Добавить сотрудника</h3>
-                <button class="modal-close" onclick="closeEmployeeModal()">&times;</button>
+                <button class="modal-close" onclick="closeEmployeeModal()">×</button>
             </div>
             
             <form id="employeeForm">
+                <input type="hidden" id="employee_id">
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="employee_name">Полное имя</label>
@@ -506,17 +501,14 @@
                         <label class="form-label" for="employee_position">Должность</label>
                         <select id="employee_position" class="form-select" required>
                             <option value="">Выберите должность</option>
-                            <option value="manager">Менеджер</option>
-                            <option value="cashier">Кассир</option>
-                            <option value="technician">Техник</option>
-                            <option value="security">Охранник</option>
-                            <option value="cleaner">Уборщица</option>
+                            <option value="Главный менеджер">Главный менеджер</option>
+                            <option value="Менеджер">Менеджер</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label" for="employee_password">Пароль</label>
-                        <input type="password" id="employee_password" class="form-input" required>
+                        <input type="password" id="employee_password" class="form-input">
                     </div>
                 </div>
                 
@@ -535,15 +527,9 @@
         document.querySelectorAll('.nav-linck').forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
-                
-                // Remove active class from all links and sections
                 document.querySelectorAll('.nav-linck').forEach(l => l.classList.remove('active'));
                 document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-                
-                // Add active class to clicked link
                 this.classList.add('active');
-                
-                // Show corresponding section
                 const sectionName = this.dataset.section;
                 document.querySelector(`.content-section[data-section="${sectionName}"]`).classList.add('active');
             });
@@ -554,15 +540,29 @@
             const modal = document.getElementById('movieModal');
             const title = document.getElementById('movieModalTitle');
             const submitBtn = document.getElementById('movieSubmitBtn');
+            const form = document.getElementById('movieForm');
             
             if (movieId) {
                 title.textContent = 'Редактировать фильм';
                 submitBtn.textContent = 'Сохранить изменения';
-                // Load movie data here
+                fetch(`/admin/movies/${movieId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('movie_id').value = data.id;
+                        document.getElementById('movie_title').value = data.movieTitle;
+                        document.getElementById('movie_genre').value = data.movieGenre;
+                        document.getElementById('movie_duration').value = data.movieDuration;
+                        document.getElementById('movie_age').value = data.movieAge;
+                        document.getElementById('movie_format').value = data.movieFormat;
+                        document.getElementById('movie_status').value = data.status;
+                        document.getElementById('movie_poster').value = data.moviePoster;
+                        document.getElementById('movie_description').value = data.movieDescription;
+                    });
             } else {
                 title.textContent = 'Добавить фильм';
                 submitBtn.textContent = 'Добавить фильм';
-                document.getElementById('movieForm').reset();
+                form.reset();
+                document.getElementById('movie_id').value = '';
             }
             
             modal.classList.add('active');
@@ -578,7 +578,15 @@
 
         function deleteMovie(movieId) {
             if (confirm('Вы уверены, что хотите удалить этот фильм?')) {
-                alert(`Фильм #${movieId} удален`);
+                fetch(`/admin/movies/${movieId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Фильм удалён');
+                            window.location.reload();
+                        } else {
+                            alert('Ошибка при удалении фильма');
+                        }
+                    });
             }
         }
 
@@ -587,15 +595,27 @@
             const modal = document.getElementById('hallModal');
             const title = document.getElementById('hallModalTitle');
             const submitBtn = document.getElementById('hallSubmitBtn');
+            const form = document.getElementById('hallForm');
             
             if (hallId) {
                 title.textContent = 'Редактировать зал';
                 submitBtn.textContent = 'Сохранить изменения';
-                // Load hall data here
+                fetch(`/admin/halls/${hallId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('hall_id').value = data.id;
+                        document.getElementById('hall_type').value = data.hallType;
+                        document.getElementById('hall_capacity').value = data.hallCapacity;
+                        document.getElementById('hall_rows').value = data.rows;
+                        document.getElementById('seats_per_row').value = data.seatsPerRow;
+                        document.getElementById('economy_seats').value = data.economySeats;
+                        document.getElementById('regular_seats').value = data.regularSeats;
+                    });
             } else {
                 title.textContent = 'Добавить зал';
                 submitBtn.textContent = 'Добавить зал';
-                document.getElementById('hallForm').reset();
+                form.reset();
+                document.getElementById('hall_id').value = '';
             }
             
             modal.classList.add('active');
@@ -611,7 +631,15 @@
 
         function deleteHall(hallId) {
             if (confirm('Вы уверены, что хотите удалить этот зал?')) {
-                alert(`Зал #${hallId} удален`);
+                fetch(`/admin/halls/${hallId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Зал удалён');
+                            window.location.reload();
+                        } else {
+                            alert('Ошибка при удалении зала');
+                        }
+                    });
             }
         }
 
@@ -620,15 +648,25 @@
             const modal = document.getElementById('employeeModal');
             const title = document.getElementById('employeeModalTitle');
             const submitBtn = document.getElementById('employeeSubmitBtn');
+            const form = document.getElementById('employeeForm');
             
             if (employeeId) {
                 title.textContent = 'Редактировать сотрудника';
                 submitBtn.textContent = 'Сохранить изменения';
-                // Load employee data here
+                fetch(`/admin/employees/${employeeId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('employee_id').value = data.employeeLogin;
+                        document.getElementById('employee_name').value = data.employeeName;
+                        document.getElementById('employee_login').value = data.employeeLogin;
+                        document.getElementById('employee_position').value = data.employeePosition;
+                        document.getElementById('employee_password').value = '';
+                    });
             } else {
                 title.textContent = 'Добавить сотрудника';
                 submitBtn.textContent = 'Добавить сотрудника';
-                document.getElementById('employeeForm').reset();
+                form.reset();
+                document.getElementById('employee_id').value = '';
             }
             
             modal.classList.add('active');
@@ -644,28 +682,160 @@
 
         function deleteEmployee(employeeId) {
             if (confirm('Вы уверены, что хотите удалить этого сотрудника?')) {
-                alert(`Сотрудник #${employeeId} удален`);
+                fetch(`/admin/employees/${employeeId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Сотрудник удалён');
+                            window.location.reload();
+                        } else {
+                            alert('Ошибка при удалении сотрудника');
+                        }
+                    });
             }
         }
 
         // Form submissions
         document.getElementById('movieForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            alert('Фильм успешно сохранен!');
+            const movieId = document.getElementById('movie_id').value;
+            const method = movieId ? 'PUT' : 'POST';
+            const url = movieId ? `/admin/movies/${movieId}` : '/admin/movies';
+            const data = {
+                movieTitle: document.getElementById('movie_title').value,
+                movieGenre: document.getElementById('movie_genre').value,
+                movieDuration: document.getElementById('movie_duration').value,
+                movieAge: document.getElementById('movie_age').value,
+                movieFormat: document.getElementById('movie_format').value,
+                status: document.getElementById('movie_status').value,
+                moviePoster: document.getElementById('movie_poster').value,
+                movieDescription: document.getElementById('movie_description').value
+            };
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Фильм успешно сохранён!');
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при сохранении фильма');
+                }
+            });
             closeMovieModal();
         });
 
         document.getElementById('hallForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            alert('Зал успешно настроен!');
+            const hallId = document.getElementById('hall_id').value;
+            const method = hallId ? 'PUT' : 'POST';
+            const url = hallId ? `/admin/halls/${hallId}` : '/admin/halls';
+            const data = {
+                hallType: document.getElementById('hall_type').value,
+                hallCapacity: document.getElementById('hall_capacity').value,
+                rows: document.getElementById('hall_rows').value,
+                seatsPerRow: document.getElementById('seats_per_row').value,
+                economySeats: document.getElementById('economy_seats').value,
+                regularSeats: document.getElementById('regular_seats').value
+            };
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Зал успешно настроен!');
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при сохранении зала');
+                }
+            });
             closeHallModal();
         });
 
         document.getElementById('employeeForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            alert('Сотрудник успешно добавлен!');
+            const employeeId = document.getElementById('employee_id').value;
+            const method = employeeId ? 'PUT' : 'POST';
+            const url = employeeId ? `/admin/employees/${employeeId}` : '/admin/employees';
+            const data = {
+                employeeName: document.getElementById('employee_name').value,
+                employeeLogin: document.getElementById('employee_login').value,
+                employeePosition: document.getElementById('employee_position').value,
+                employeePassword: document.getElementById('employee_password').value
+            };
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Сотрудник успешно сохранён!');
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при сохранении сотрудника');
+                }
+            });
             closeEmployeeModal();
         });
+
+        // Pricing functions
+        function savePricing() {
+            const data = {
+                economyPrice: document.querySelector('input[value="{{ pricing.economyPrice ?? 350 }}"]').value,
+                regularPrice: document.querySelector('input[value="{{ pricing.regularPrice ?? 400 }}"]').value,
+                format3DPrice: document.querySelector('input[value="{{ pricing.format3DPrice ?? 100 }}"]').value,
+                imaxPrice: document.querySelector('input[value="{{ pricing.imaxPrice ?? 200 }}"]').value
+            };
+            
+            fetch('/admin/pricing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Цены успешно сохранены!');
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при сохранении цен');
+                }
+            });
+        }
+
+        function resetPricing() {
+            if (confirm('Сбросить цены к значениям по умолчанию?')) {
+                fetch('/admin/pricing/reset', { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Цены сброшены!');
+                            window.location.reload();
+                        } else {
+                            alert('Ошибка при сбросе цен');
+                        }
+                    });
+            }
+        }
+
+        // Report functions
+        function updateReport() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            
+            fetch(`/admin/reports?period=${period}&startDate=${startDate}&endDate=${endDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Обновление отчёта через AJAX (для упрощения не реализовано, требуется динамическое обновление DOM)
+                    window.location.reload();
+                });
+        }
 
         // Close modals on outside click
         document.querySelectorAll('.modal').forEach(modal => {
@@ -696,6 +866,19 @@
                 if (this.value < 0) this.value = 0;
                 if (this.value > 10000) this.value = 10000;
             });
+        });
+        document.querySelector('.btn.btn-success').addEventListener('click', function() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            window.location.href = `/admin/reports/export/excel?period=${period}&startDate=${startDate}&endDate=${endDate}`;
+        });
+
+        document.querySelector('.export-pdf-btn').addEventListener('click', function() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            window.location.href = `/admin/reports/export/pdf?period=${period}&startDate=${startDate}&endDate=${endDate}`;
         });
     </script>
 {% endblock %}

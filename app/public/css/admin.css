@@ -306,9 +306,10 @@ body {
     border-color: var(--accent-gold);
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
+.data-table img {
+    width: 40px; /* Фиксированная ширина */
+    height: 60px; /* Фиксированная высота */
+    object-fit: cover; /* Обрезка изображения для сохранения пропорций */
 }
 
 .data-table th,
@@ -524,7 +525,7 @@ body {
 
 .seat-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     max-width: 300px;
     margin: 1rem auto;

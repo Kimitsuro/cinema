@@ -38,8 +38,8 @@
                         <div class="session-date">
                             {{ date|date('d.m.Y') }} - {{ date|date('l')|trans({}, 'messages', 'ru') }}
                         </div>
-                        {% for session in sessions %}
-                            <div class="session-times">
+                        <div class="session-times">
+                            {% for session in sessions %}
                                 <div class="session-option" 
                                     data-session-id="{{ session.id }}" 
                                     data-time="{{ session.sessionData|date('H:i') }}" 
@@ -51,8 +51,8 @@
                                     <div class="session-info">Зал {{ session.hall.id }} - {{ session.movie.movieFormat }}</div>
                                     <div class="session-price">от {{ session.sessionPrice }} ₽</div>
                                 </div>
-                            </div>
-                        {% endfor %}
+                            {% endfor %}
+                        </div>
                     {% endfor %}
                 </div>
                 

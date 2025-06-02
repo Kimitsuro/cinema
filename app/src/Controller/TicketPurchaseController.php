@@ -40,9 +40,27 @@ final class TicketPurchaseController extends AbstractController
     #[Route('/ticket-purchase/{movieId<\d+>}', name: 'ticket_purchase')]
     public function index(int $movieId, Request $request): Response
     {
-        $sessions = $this->sessionRepository->findBy(['movie' => $movieId], ['sessionData' => 'ASC']);
+        // Текущая дата и время
+        $currentDateTime = new \DateTime('now', new \DateTimeZone('Europe/Moscow'));
+
+        // Получение сеансов для фильма, исключая прошедшие
+        $sessions = $this->sessionRepository->findBy(
+            ['movie' => $movieId],
+            ['sessionData' => 'ASC']
+        );
+
+        // Фильтрация прошедших сеансов
+        $sessions = array_filter($sessions, function ($session) use ($currentDateTime) {
+            return $session->getSessionData() >= $currentDateTime;
+        });
+
         $sessionId = $request->query->get('sessionId');
-        $currentSession = $sessionId ? $this->sessionRepository->find($sessionId) : ($sessions[0] ?? null);
+        $currentSession = $sessionId ? $this->sessionRepository->find($sessionId) : (reset($sessions) ?: null);
+
+        // Проверка, что текущий сеанс не прошел
+        if ($currentSession && $currentSession->getSessionData() < $currentDateTime) {
+            $currentSession = reset($sessions) ?: null;
+        }
 
         if ($currentSession) {
             $hall = $currentSession->getHall();
