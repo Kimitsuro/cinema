@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Залы - Кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/hall.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+<!-- Main Content -->
+<main class="main-content">
+    <h1 class="page-title">Демонстрация залов</h1>
+    <p class="page-subtitle">Ознакомьтесь с планировкой наших залов и типами мест</p>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-seat economy"></div>
+            <span>Эконом места</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-seat regular"></div>
+            <span>Обычные места</span>
+        </div>
+    </div>
+
+    <!-- Halls Grid -->
+    <div class="halls-grid">
+        {% for data in hallData %}
+            {% set hall = data.hall %}
+            <div class="hall-container">
+                <div class="hall-header">
+                    <h2 class="hall-title">Зал {{ hall.id }} - {{ hall.hallType }}</h2>
+                    <p class="hall-info">
+                        {% if hall.hallType == '2D' %}
+                            Классический формат
+                        {% elseif hall.hallType == '3D' %}
+                            Объемное изображение
+                        {% else %}
+                            Премиум формат
+                        {% endif %}
+                        • {{ hall.hallCapacity }} мест
+                    </p>
+                </div>
+
+                <div class="screen">
+                    <div class="screen-text">{{ hall.hallType }} ЭКРАН</div>
+                </div>
+
+                <div class="seats-container">
+                    {% if hall.hallType == '2D' or hall.hallType == '3D' %}
+                        <!-- 2D and 3D Halls: Rectangular Grid Layout -->
+                        <div class="seats-2d">
+                            {% for row, seats in data.seatsByRow %}
+                                {% for seat in seats %}
+                                    <div class="seat {{ seat.seatType }}"
+                                         title="Ряд {{ seat.seatRow }}, Место {{ seat.searNumber }}"
+                                         data-seat-id="{{ seat.id }}">{{ seat.searNumber }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- IMAX Hall: Amphitheater Layout -->
+                        <div class="seats-imax">
+                            {% for row, seats in data.seatsByRow %}
+                                <div class="imax-row">
+                                    {% for seat in seats %}
+                                        <div class="seat {{ seat.seatType }}"
+                                             title="Ряд {{ seat.seatRow }}, Место {{ seat.searNumber }}"
+                                             data-seat-id="{{ seat.id }}">{{ seat.searNumber }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="hall-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ data.economyCount }}</div>
+                        <div class="stat-label">Эконом</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ data.regularCount }}</div>
+                        <div class="stat-label">Обычные</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ hall.hallCapacity }}</div>
+                        <div class="stat-label">Всего</div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p class="no-halls">Залы не найдены.</p>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/hall.js') }}"></script>
+{% endblock %}

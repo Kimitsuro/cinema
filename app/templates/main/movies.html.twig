@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Фильмы - Кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/movie.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">Фильмы</h1>
+        <p class="page-subtitle">Выберите фильм для просмотра в нашем кинотеатре</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <h2 class="filters-title">Фильтры</h2>
+        <form method="GET" action="{{ path('movie', app.request.query.all) }}" class="filters-grid">
+            <div class="filter-group">
+                <label for="genre" class="filter-label">Жанр</label>
+                <select id="genre" name="genre" class="filter-select">
+                    <option value="">Все жанры</option>
+                    {% for genre in genres %}
+                        <option value="{{ genre }}" {{ currentGenre == genre ? 'selected' : '' }}>{{ genre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="age" class="filter-label">Возрастное ограничение</label>
+                <select id="age" name="age" class="filter-select">
+                    <option value="">Любой возраст</option>
+                    {% for age in ages %}
+                        <option value="{{ age }}" {{ currentAge == age ? 'selected' : '' }}>{{ age }}+</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="format" class="filter-label">Формат</label>
+                <select id="format" name="format" class="filter-select">
+                    <option value="">Все форматы</option>
+                    {% for format in formats %}
+                        <option value="{{ format }}" {{ currentFormat == format ? 'selected' : '' }}>{{ format }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="status" class="filter-label">Статус</label>
+                <select id="status" name="status" class="filter-select">
+                    <option value="">Все фильмы</option>
+                    <option value="current" {{ currentStatus == 'current' ? 'selected' : '' }}>Сейчас в кино</option>
+                    <option value="upcoming" {{ currentStatus == 'upcoming' ? 'selected' : '' }}>Скоро в кино</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="sort" class="filter-label">Сортировка</label>
+                <select id="sort" name="sort" class="filter-select">
+                    <option value="title" {{ currentSort == 'title' ? 'selected' : '' }}>По названию</option>
+                    <option value="duration" {{ currentSort == 'duration' ? 'selected' : '' }}>По длительности</option>
+                    <option value="age" {{ currentSort == 'age' ? 'selected' : '' }}>По возрастному ограничению</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Применить</button>
+        </form>
+    </div>
+
+    <!-- Movies Grid -->
+    <div class="movies-grid">
+        {% if movies|length > 0 %}
+            {% for movie in movies %}
+                <div class="movie-card">
+                    <div class="movie-poster">
+                        <img src="{{ asset(movie.moviePoster) }}" alt="Постер фильма {{ movie.movieTitle }}">
+                        <div class="movie-age-badge">{{ movie.movieAge }}+</div>
+                        {% if movie.status == 'upcoming' %}
+                            <div class="movie-status-badge">Скоро</div>
+                        {% endif %}
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie.movieTitle }}</h3>
+                        <div class="movie-meta">
+                            <span class="movie-genre">{{ movie.movieGenre }}</span>
+                            <span>{{ movie.movieDuration }} мин</span>
+                            <span>{{ movie.movieFormat }}</span>
+                        </div>
+                        <p class="movie-description">
+                            {{ movie.movieDescription|length > 150 ? movie.movieDescription|slice(0, 150) ~ '...' : movie.movieDescription }}
+                        </p>
+                        <div class="movie-actions">
+                            {% if movie.status == 'current' %}
+                                <a href="{{ path('ticket_purchase', {'movieId': movie.id}) }}" class="btn btn-primary">Купить билет</a>
+                            {% endif %}
+                            <a href="{{ path('movie-detail', {'id': movie.id}) }}" class="btn btn-secondary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-movies">Фильмы не найдены. Попробуйте изменить фильтры.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

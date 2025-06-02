@@ -1,0 +1,453 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-dark: #0a0a0a;
+    --secondary-dark: #1a1a1a;
+    --accent-red: #cc2936;
+    --accent-gold: #d4af37;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-muted: #666666;
+    --border-color: #333333;
+    --gradient-overlay: linear-gradient(135deg, rgba(204, 41, 54, 0.1) 0%, rgba(212, 175, 55, 0.1) 100%);
+}
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: var(--primary-dark);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(180deg, var(--secondary-dark) 0%, rgba(26, 26, 26, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-overlay);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.logo-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.nav {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 400;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.nav-link.active,
+.nav-link:hover {
+    color: var(--accent-gold);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent-gold);
+    transition: width 0.3s ease;
+}
+
+.nav-link.active::after,
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.auth-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.auth-link {
+    padding: 0.7rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.auth-link.login {
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.auth-link.login:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-gold);
+}
+
+.auth-link.register {
+    background: var(--accent-red);
+    color: var(--text-primary);
+}
+
+.auth-link.register:hover {
+    background: #b02330;
+    transform: translateY(-1px);
+}
+
+/* Main Content */
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-header {
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+/* Date Navigation */
+.date-navigation {
+    background: var(--secondary-dark);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 3rem;
+    border: 1px solid var(--border-color);
+}
+
+.date-nav-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--accent-gold);
+    text-align: center;
+}
+
+.date-tabs {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.date-tab {
+    background: var(--primary-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    text-align: center;
+    min-width: 120px;
+}
+
+.date-tab.active,
+.date-tab:hover {
+    background: var(--accent-gold);
+    color: var(--primary-dark);
+    border-color: var(--accent-gold);
+    transform: translateY(-2px);
+}
+
+.date-tab-day {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.date-tab-date {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Sessions */
+.sessions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.movie-session {
+    background: var(--secondary-dark);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.movie-session-header {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+}
+
+.movie-poster-small {
+    width: 120px;
+    height: 180px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.movie-poster-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.movie-session-info {
+    flex: 1;
+}
+
+.movie-session-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.movie-session-meta {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.movie-session-meta span {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.movie-session-genre {
+    color: var(--accent-gold);
+    font-weight: 500;
+}
+
+.movie-session-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.session-card {
+    background: var(--primary-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.session-card:hover {
+    border-color: var(--accent-gold);
+    transform: translateY(-2px);
+}
+
+.session-time {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    margin-bottom: 0.5rem;
+}
+
+.session-hall {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.session-price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.session-seats {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.session-btn {
+    display: inline-block;
+    width: 100%;
+    padding: 0.7rem;
+    background: var(--accent-red);
+    color: var(--text-primary);
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.session-btn:hover {
+    background: #b02330;
+    transform: translateY(-1px);
+}
+
+.session-btn:disabled {
+    background: var(--text-muted);
+    pointer-events: none;
+    transform: none;
+}
+
+/* Footer */
+.footer {
+    background: var(--secondary-dark);
+    border-top: 1px solid var(--border-color);
+    padding: 3rem 0 1rem;
+    margin-top: 4rem;
+}
+
+.footer-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.footer-section h3 {
+    color: var(--accent-gold);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.footer-section p,
+.footer-section a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    display: block;
+    transition: color 0.3s ease;
+}
+
+.footer-section a:hover {
+    color: var(--accent-gold);
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-container {
+        padding: 0 1rem;
+        flex-wrap: wrap;
+        height: auto;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .nav {
+        order: 3;
+        width: 100%;
+        margin-top: 1rem;
+        justify-content: center;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .movie-session-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .movie-poster-small {
+        width: 100px;
+        height: 150px;
+    }
+
+    .sessions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .date-tabs {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .date-tab {
+        min-width: 200px;
+    }
+}

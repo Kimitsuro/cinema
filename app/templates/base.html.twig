@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Кинотеатр Сакура{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    {% block stylesheets %}{% endblock %}
+    <link rel="stylesheet" href="{{ asset('css/base.css') }}?v={{ "now"|date("U") }}"">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="{{ path('app_home') }}" class="logo">
+                <div class="logo-text">Кинотеатр Сакура</div>
+            </a>
+            
+            <nav class="nav">
+                <a href="{{ path('movie') }}" class="nav-link">Фильмы</a>
+                <a href="{{ path('hall') }}" class="nav-link">Залы</a>
+                <a href="{{ path('session') }}" class="nav-link">Сеансы</a>
+            </nav>
+            
+            <div class="auth-links">
+                {% if app.user %}
+                    {% if 'ROLE_GOER' in app.user.roles %}
+                        <a href="{{ path('goer_account') }}" class="auth-link login">Личный кабинет</a>
+                    {% elseif 'ROLE_ADMIN' in app.user.roles %}
+                        <a href="{{ path('app_admin') }}" class="auth-link login">Личный кабинет</a>
+                    {% elseif 'ROLE_EMPLOYEE' in app.user.roles %}
+                        <a href="{{ path('app_employee') }}" class="auth-link login">Личный кабинет</a>
+                    {% endif %}
+                    <a href="{{ path('logout') }}" class="auth-link register">Выйти</a>
+                {% else %}
+                    <a href="{{ path('login') }}" class="auth-link login">Вход</a>
+                    <a href="{{ path('register') }}" class="auth-link register">Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block body %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>О кинотеатре</h3>
+                <p>Sakura Cinema - современный кинотеатр с японской эстетикой, предлагающий незабываемые кинематографические впечатления.</p>   
+            </div>
+            
+            <div class="footer-section">
+                <h3>Социальные сети</h3>
+                <a href="https://vk.com/dima.zaya">ВКонтакте</a>
+                <a href="https://t.me/MilashkaZaya">Telegram</a>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; {{ "now"|date("Y") }} Кинотеатр Сакура. Все права защищены.</p>
+        </div>
+    </footer>
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

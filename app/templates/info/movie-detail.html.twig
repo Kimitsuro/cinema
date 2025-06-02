@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    {{ movie.movieTitle ?? 'Название фильма' }} - Sakura Cinema
+{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/movie-detail.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Movie Hero Section -->
+    <section class="movie-hero">
+        <div class="hero-content">
+            <img src="{{ movie.moviePoster ?? '/placeholder.svg?height=450&width=300' }}" alt="Постер фильма" class="movie-poster-large">
+            
+            <div class="movie-info-main">
+                <h1 class="movie-title-main">{{ movie.movieTitle ?? 'Загадочный лес Сакуры' }}</h1>
+                
+                <div class="movie-meta-main">
+                    <div class="meta-item">
+                        <span class="genre-tag">{{ movie.movieGenre ?? 'Драма' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Длительность:</span>
+                        <span class="meta-value">{{ movie.movieDuration ?? '125' }} мин</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Формат:</span>
+                        <span class="meta-value">{{ movie.movieFormat ?? '2D, 3D, IMAX' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="age-rating">{{ movie.movieAge ?? '16' }}+</span>
+                    </div>
+                </div>
+                
+                <p class="movie-description-main">
+                    {{ movie.movieDescription ?? 'Описание недоступно.' }}
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-content">
+                <!-- Sessions Schedule -->
+                <section id="sessions" class="content-section">
+                    <h2 class="section-title">Расписание сеансов</h2>
+                    
+                    {% if isInRelease %}
+                        <div class="sessions-grid">
+                            {% for date, sessionsInDate in sessions %}
+                                <div class="session-date">
+                                    {{ date }} - {{ date|date('l', 'Europe/Moscow')|trans({}, 'messages', 'ru') }}
+                                </div>
+                                <div class="session-times">
+                                    {% for session in sessionsInDate %}
+                                        <a href="{{ path('ticket_purchase', { movieId: session.getMovie().getId() }) }}?sessionId={{ session.getId() }}&step=2" class="session-time">
+                                            <span class="session-time-text">{{ session.sessionData|date('H:i') }}</span>
+                                            <span class="session-hall">Зал {{ session.hall.hallType }}</span>
+                                            <span class="session-price">от {{ session.sessionPrice }} ₽</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Фильм скоро будет доступен в прокате. Следите за обновлениями!</p>
+                    {% endif %}
+                </section>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/movie-detail.js') }}"></script>
+{% endblock %}

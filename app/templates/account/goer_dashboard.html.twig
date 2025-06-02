@@ -1,0 +1,408 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Личный кабинет - кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/goer.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h2 class="sidebar-title">Личный кабинет</h2>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck active" data-section="dashboard">
+                            <span class="nav-icon">📊</span>
+                            <span>Главная</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="tickets">
+                            <span class="nav-icon">🎫</span>
+                            <span>Мои билеты</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="refunds">
+                            <span class="nav-icon">💰</span>
+                            <span>Возвраты</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="profile">
+                            <span class="nav-icon">👤</span>
+                            <span>Профиль</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Dashboard Section -->
+            <section class="content-section active" data-section="dashboard">
+                <h1 class="section-title">Добро пожаловать, {{ goer.goerName ?? 'Пользователь' }}!</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ totalPurchases }}</div>
+                        <div class="stat-label">Всего покупок</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ totalSpent|number_format(0, '.', ',') }} ₽</div>
+                        <div class="stat-label">Потрачено</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ activeTickets }}</div>
+                        <div class="stat-label">Активных билетов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ totalRefunds }}</div>
+                        <div class="stat-label">Возвратов</div>
+                    </div>
+                </div>
+
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Последние билеты</h3>
+                <div class="tickets-grid">
+                    {% if latestTickets is empty %}
+                        <p>Билетов пока нет.</p>
+                    {% else %}
+                        {% for ticket in latestTickets %}
+                            <div class="ticket-card">
+                                <div class="ticket-header">
+                                    <div>
+                                        <div class="ticket-movie">{{ ticket.session.movie.movieTitle }}</div>
+                                        <div class="ticket-session">{{ ticket.session.sessionData|date('d.m.Y в H:i') }}</div>
+                                    </div>
+                                    <span class="ticket-status {{ (ticket.session.sessionData > 'now'|date and ticket.ticketStatus != 'refunded' ? 'active' : 'expired') }}">
+                                        {{ ticket.session.sessionData > 'now'|date and ticket.ticketStatus != 'refunded' ? 'Активный' : 'Истёк' }}
+                                    </span>
+                                </div>
+                                <div class="ticket-details">
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Зал</div>
+                                        <div class="detail-value">{{ ticket.session.hall.id }}</div>
+                                    </div>
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Место</div>
+                                        <div class="detail-value">Ряд {{ ticket.seat.seatRow }}, Место {{ ticket.seat.searNumber }}</div>
+                                    </div>
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Цена</div>
+                                        <div class="detail-value">
+                                            {{ ticket.seat.seatType == 'economy' ? (ticket.session.sessionPrice * 0.8)|round(0, 'floor') : ticket.session.sessionPrice }} ₽
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Tickets Section -->
+            <section class="content-section" data-section="tickets">
+                <h1 class="section-title">Мои билеты</h1>
+                
+                <div class="tickets-filter">
+                    <button class="filter-btn active" data-filter="all">Все билеты</button>
+                    <button class="filter-btn" data-filter="active">Активные</button>
+                    <button class="filter-btn" data-filter="refunded">Возвращённые</button>
+                </div>
+
+                <div class="tickets-grid">
+                    {% if allTickets is empty %}
+                        <p>Билетов пока нет.</p>
+                    {% else %}
+                        {% for ticket in allTickets %}
+                            {% set status = ticket.ticketStatus == 'refunded' ? 'refunded' : (ticket.session.sessionData > 'now'|date ? 'active' : 'expired') %}
+                            {% set statusText = ticket.ticketStatus == 'refunded' ? 'Возвращён' : (ticket.session.sessionData > 'now'|date ? 'Активный' : 'Истёк') %}
+                            <div class="ticket-card" data-status="{{ status }}">
+                                <div class="ticket-header">
+                                    <div>
+                                        <div class="ticket-movie">{{ ticket.session.movie.movieTitle }}</div>
+                                        <div class="ticket-session">{{ ticket.session.sessionData|date('d.m.Y в H:i') }}</div>
+                                    </div>
+                                    <span class="ticket-status {{ status }}">{{ statusText }}</span>
+                                </div>
+                                <div class="ticket-details">
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Зал</div>
+                                        <div class="detail-value">{{ ticket.session.hall.id }}</div>
+                                    </div>
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Место</div>
+                                        <div class="detail-value">Ряд {{ ticket.seat.seatRow }}, Место {{ ticket.seat.searNumber }}</div>
+                                    </div>
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Цена</div>
+                                        <div class="detail-value">
+                                            {{ ticket.seat.seatType == 'economy' ? (ticket.session.sessionPrice * 0.8)|round(0, 'floor') : ticket.session.sessionPrice }} ₽
+                                        </div>
+                                    </div>
+                                    <div class="ticket-detail">
+                                        <div class="detail-label">Дата покупки</div>
+                                        <div class="detail-value">{{ ticket.purchase.purchaseDate|date('d.m.Y') }}</div>
+                                    </div>
+                                </div>
+                                {% if status == 'active' %}
+                                <div class="ticket-actions">
+                                    <button class="btn btn-danger btn-small" onclick="openRefundModal({{ ticket.id }})">Вернуть билет</button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Refunds Section -->
+            <section class="content-section" data-section="refunds">
+                <h1 class="section-title">Возвраты билетов</h1>
+                
+                {% if refunds is empty %}
+                    <p>Заявок на возврат пока нет.</p>
+                {% else %}
+                    {% for refund in refunds %}
+                        {% set refundStatus = refund.refundStatus %}
+                        {% set refundStatusText = {'pending': 'На рассмотрении', 'approved': 'Одобрен', 'rejected': 'Отклонён'}[refund.refundStatus] %}
+                        <div class="refund-card">
+                            <div class="refund-header">
+                                <div class="refund-id">Возврат #{{ refund.id }}</div>
+                                <span class="refund-status {{ refundStatus }}">{{ refundStatusText }}</span>
+                            </div>
+                            <div class="refund-refundReason">"{{ refund.refundReason }}"</div>
+                            <div class="ticket-details">
+                                <div class="ticket-detail">
+                                    <div class="detail-label">Фильм</div>
+                                    <div class="detail-value">{{ refund.ticket.session.movie.movieTitle }}</div>
+                                </div>
+                                <div class="ticket-detail">
+                                    <div class="detail-label">Дата сеанса</div>
+                                    <div class="detail-value">{{ refund.ticket.session.sessionData|date('d.m.Y в H:i') }}</div>
+                                </div>
+                                <div class="ticket-detail">
+                                    <div class="detail-label">Сумма возврата</div>
+                                    <div class="detail-value">{{ (refund.ticket.seat.seatType == 'economy' ? (refund.ticket.session.sessionPrice * 0.8) : refund.ticket.session.sessionPrice) }} ₽</div>
+                                </div>
+                                <div class="ticket-detail">
+                                    <div class="detail-label">Дата подачи</div>
+                                    <div class="detail-value">{{ refund.refundDate|date('d.m.Y') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </section>
+
+            <!-- Profile Section -->
+            <section class="content-section" data-section="profile">
+                <h1 class="section-title">Личные данные</h1>
+                
+                <form class="profile-form">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Имя</label>
+                        <input type="text" id="name" class="form-input" value="{{ goer.goerName ?? '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" value="{{ goer.goerEmail ?? '' }}" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Телефон</label>
+                        <input type="tel" id="phone" class="form-input" value="{{ goer.goerPhone ?? '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="password">Новый пароль</label>
+                        <input type="password" id="password" class="form-input" placeholder="Оставьте пустым, если не хотите менять">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="password_confirm">Подтвердите пароль</label>
+                        <input type="password" id="password_confirm" class="form-input" placeholder="Повторите новый пароль">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <!-- Refund Modal -->
+    <div class="modal" id="refundModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Возврат билета</h3>
+                <button class="modal-close" onclick="closeRefundModal()">×</button>
+            </div>
+            
+            <form id="refundForm">
+                <div class="form-group">
+                    <label class="form-label" for="refund_reason">Причина возврата</label>
+                    <textarea id="refund_reason" class="form-input" rows="4" placeholder="Укажите причину возврата билета" required></textarea>
+                </div>
+                
+                <div style="margin-bottom: 1rem; padding: 1rem; background: var(--primary-dark); border-radius: 8px;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        <strong>Внимание:</strong> Возврат билета возможен не позднее чем за 2 часа до начала сеанса.
+                    </p>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRefundModal()">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Подать заявку на возврат</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-linck').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links and sections
+                document.querySelectorAll('.nav-linck').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const sectionName = this.dataset.section;
+                document.querySelector(`.content-section[data-section="${sectionName}"]`).classList.add('active');
+            });
+        });
+
+        // Ticket filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all filter buttons
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                const tickets = document.querySelectorAll('.ticket-card[data-status]');
+                
+                tickets.forEach(ticket => {
+                    if (filter === 'all' || ticket.dataset.status === filter) {
+                        ticket.style.display = 'block';
+                    } else {
+                        ticket.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Refund modal
+        function openRefundModal(ticketId) {
+            document.getElementById('refundModal').classList.add('active');
+            document.getElementById('refundForm').dataset.ticketId = ticketId;
+        }
+
+        function closeRefundModal() {
+            document.getElementById('refundModal').classList.remove('active');
+            document.getElementById('refundForm').dataset.ticketId = '';
+        }
+
+        // Close modal on outside click
+        document.getElementById('refundModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRefundModal();
+            }
+        });
+
+        // Refund form submission
+        document.getElementById('refundForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const ticketId = this.dataset.ticketId;
+            const reason = document.getElementById('refund_reason').value;
+
+            if (!ticketId || !reason.trim()) {
+                alert('Заполните все поля.');
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ path('goer_refund') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        ticketId: ticketId,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Ошибка при подаче заявки на возврат');
+                }
+
+                alert('Заявка на возврат билета подана успешно!');
+                closeRefundModal();
+                document.getElementById('refund_reason').value = '';
+                window.location.reload(); // Обновить страницу для отображения изменений
+            } catch (error) {
+                console.error('Refund error:', error.message);
+                alert('Ошибка при подаче заявки: ' + error.message);
+            }
+        });
+
+        // Profile form submission
+        document.querySelector('.profile-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+
+            if (password && password !== passwordConfirm) {
+                alert('Пароли не совпадают!');
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ path('goer_profile_update') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        phone: phone,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Ошибка при сохранении данных');
+                }
+
+                alert('Данные успешно сохранены!');
+            } catch (error) {
+                console.error('Profile update error:', error.message);
+                alert('Ошибка при сохранении данных: ' + error.message);
+            }
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Регистрация - кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/register.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h1 class="auth-title">Регистрация</h1>
+        <p class="auth-subtitle">Создайте аккаунт в Кинотеатр Сакура</p>
+    </div>
+
+    <form class="auth-form" action="{{ path('register') }}" method="post">
+        <div class="form-group">
+            <label for="role" class="form-label">Выберите роль</label>
+            <select id="role" name="role" class="form-control form-select" required>
+                <option value="goer">Посетитель</option>
+                <option value="employee">Сотрудник</option>
+                <option value="admin">Администратор</option>
+            </select>
+        </div>
+        
+        <!-- Поля для посетителя -->
+        <div id="goer-fields">
+            <div class="form-group">
+                <label for="goer-name" class="form-label">Имя</label>
+                <input type="text" id="goer-name" name="goer_name" class="form-control" placeholder="Введите ваше имя" required>
+                {% if errors.goer_name is defined %}
+                    <small class="form-error">{{ errors.goer_name }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="goer-email" class="form-label">Email</label>
+                <input type="email" id="goer-email" name="goer_email" class="form-control" placeholder="Введите ваш email" required>
+                {% if errors.goer_email is defined %}
+                    <small class="form-error">{{ errors.goer_email }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="goer-phone" class="form-label">Телефон</label>
+                <input type="tel" id="goer-phone" name="goer_phone" class="form-control" placeholder="Введите ваш телефон (необязательно)" pattern="[0-9]{10}">
+                {% if errors.goer_phone is defined %}
+                    <small class="form-error">{{ errors.goer_phone }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="goer-password" class="form-label">Пароль</label>
+                    <input type="password" id="goer-password" name="goer_password" class="form-control" placeholder="Введите пароль" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="goer-password-confirm" class="form-label">Подтверждение пароля</label>
+                    <input type="password" id="goer-password-confirm" name="goer_password_confirm" class="form-control" placeholder="Повторите пароль" required>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Поля для сотрудника -->
+        <div id="employee-fields" class="hidden">
+            <div class="form-group">
+                <label for="employee-name" class="form-label">Имя</label>
+                <input type="text" id="employee-name" name="employee_name" class="form-control" placeholder="Введите ваше имя">
+                {% if errors.employee_name is defined %}
+                    <small class="form-error">{{ errors.employee_name }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="employee-login" class="form-label">Логин</label>
+                <input type="text" id="employee-login" name="employee_login" class="form-control" placeholder="Введите логин">
+                {% if errors.employee_login is defined %}
+                    <small class="form-error">{{ errors.employee_login }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="employee-position" class="form-label">Должность</label>
+                <select id="employee-position" name="employee_position" class="form-control form-select">
+                    <option value="Главный менеджер">Главный менеджер</option>
+                    <option value="Менеджер">Менеджер</option>
+                </select>
+                {% if errors.employee_position is defined %}
+                    <small class="form-error">{{ errors.employee_position }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="admin-login-for-employee" class="form-label">Администратор</label>
+                <select id="admin-login-for-employee" name="admin_login_for_employee" class="form-control form-select">
+                    {% for admin in admins %}
+                        <option value="{{ admin.adminLogin }}">{{ admin.adminName }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.admin_login_for_employee is defined %}
+                    <small class="form-error">{{ errors.admin_login_for_employee }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="employee-password" class="form-label">Пароль</label>
+                    <input type="password" id="employee-password" name="employee_password" class="form-control" placeholder="Введите пароль">
+                </div>
+
+                <div class="form-group">
+                    <label for="employee-password-confirm" class="form-label">Подтверждение пароля</label>
+                    <input type="password" id="employee-password-confirm" name="employee_password_confirm" class="form-control" placeholder="Повторите пароль">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Поля для администратора -->
+        <div id="admin-fields" class="hidden">
+            <div class="form-group">
+                <label for="admin-name" class="form-label">Имя</label>
+                <input type="text" id="admin-name" name="admin_name" class="form-control" placeholder="Введите ваше имя">
+                {% if errors.admin_name is defined %}
+                    <small class="form-error">{{ errors.admin_name }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="admin-login" class="form-label">Логин</label>
+                <input type="text" id="admin-login" name="admin_login" class="form-control" placeholder="Введите логин">
+                {% if errors.admin_login is defined %}
+                    <small class="form-error">{{ errors.admin_login }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="admin-password" class="form-label">Пароль</label>
+                    <input type="password" id="admin-password" name="admin_password" class="form-control" placeholder="Введите пароль">
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin-password-confirm" class="form-label">Подтверждение пароля</label>
+                    <input type="password" id="admin-password-confirm" name="admin_password_confirm" class="form-control" placeholder="Повторите пароль">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">Зарегистрироваться</button>
+        </div>
+    </form>
+    
+    <div class="auth-footer">
+        <p>Уже есть аккаунт? <a href="{{ path('login') }}">Войти</a></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/register.js') }}"></script>
+{% endblock %}

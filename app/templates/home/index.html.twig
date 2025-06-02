@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Кинотеатр Сакура - Главная{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Добро пожаловать в кинотеатр Сакура</h1>
+            <p class="hero-subtitle">Погрузитесь в мир кинематографа в атмосфере японской эстетики. Современные технологии и традиционная элегантность.</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Current Movies Section -->
+        <section class="section">
+            <h2 class="section-title">Сейчас в кино</h2>
+            <div class="movies-grid">
+                {% for movie in currentMovies %}
+                <div class="movie-card">
+                    <div class="movie-poster">
+                        <img src="{{ movie.moviePoster }}" alt="Постер фильма {{ movie.movieTitle }}">
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie.movieTitle }}</h3>
+                        <div class="movie-meta">
+                            <span class="movie-genre">{{ movie.movieGenre }}</span>
+                            <span>{{ movie.movieDuration }} мин</span>
+                            <span>{{ movie.movieAge }}+</span>
+                        </div>
+                        <p class="movie-description">
+                            {{ movie.movieDescription }}
+                        </p>
+                        <div class="movie-actions">
+                            <a href="{{ path('ticket_purchase', {'movieId': movie.id}) }}" class="btn btn-primary">Купить билет</a>
+                            <a href="{{ path('movie-detail', {'id': movie.id}) }}" class="btn btn-secondary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Upcoming Movies Section -->
+        <section class="section">
+            <h2 class="section-title">Скоро в кино</h2>
+            <div class="movies-grid">
+                {% for movie in upcomingMovies %}
+                <div class="movie-card">
+                    <div class="movie-poster">
+                        <img src="{{ movie.moviePoster }}" alt="Постер фильма {{ movie.movieTitle }}">
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie.movieTitle }}</h3>
+                        <div class="movie-meta">
+                            <span class="movie-genre">{{ movie.movieGenre }}</span>
+                            <span>{{ movie.movieDuration }} мин</span>
+                            <span>{{ movie.movieAge }}+</span>
+                        </div>
+                        <p class="movie-description">
+                            {{ movie.movieDescription }}
+                        </p>
+                        <div class="movie-actions">
+                            <a href="{{ path('movie-detail', {'id': movie.id}) }}" class="btn btn-secondary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+{% endblock %}

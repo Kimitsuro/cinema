@@ -1,0 +1,625 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Личный кабинет - кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/employee.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h2 class="sidebar-title">Панель сотрудника</h2>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck active" data-section="dashboard">
+                            <span class="nav-icon">📊</span>
+                            <span>Дашборд</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="schedule">
+                            <span class="nav-icon">📅</span>
+                            <span>Расписание</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="occupancy">
+                            <span class="nav-icon">🎭</span>
+                            <span>Занятость мест</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="refunds">
+                            <span class="nav-icon">💰</span>
+                            <span>Возвраты</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Dashboard Section -->
+            <section class="content-section active" data-section="dashboard">
+                <h1 class="section-title">Дашборд</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.todaySessions }}</div>
+                        <div class="stat-label">Сеансов сегодня</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.ticketsSold }}</div>
+                        <div class="stat-label">Проданных билетов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.pendingRefunds }}</div>
+                        <div class="stat-label">Заявок на возврат</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.occupancyRate }}%</div>
+                        <div class="stat-label">Заполняемость</div>
+                    </div>
+                </div>
+
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Сегодняшние сеансы</h3>
+                <div class="sessions-list">
+                    {% for session in todaySessions %}
+                    <div class="session-item">
+                        <div class="session-header">
+                            <div class="session-movie">{{ session.movie.movieTitle }}</div>
+                            <div class="session-time">{{ session.sessionData|date('H:i') }}</div>
+                        </div>
+                        <div class="session-details">
+                            <div class="session-detail">
+                                <div class="detail-label">Зал</div>
+                                <div class="detail-value">{{ session.hall.id }}</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Продано</div>
+                                <div class="detail-value">{{ session.tickets|length }}/{{ session.hall.hallCapacity }}</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Выручка</div>
+                                <div class="detail-value">{{ (session.tickets|length * session.sessionPrice)|number_format(0, '', ' ') }} ₽</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Schedule Section -->
+            <section class="content-section" data-section="schedule">
+                <h1 class="section-title">Управление расписанием</h1>
+                
+                <div class="schedule-controls">
+                    <input type="date" class="date-picker" value="{{ "now"|date('Y-m-d') }}">
+                    <button class="btn btn-primary" onclick="openSessionModal()">+ Добавить сеанс</button>
+                </div>
+
+                <div class="schedule-grid">
+                    {% for day, sessions in schedule %}
+                    <div class="schedule-day">
+                        <div class="day-header">
+                            <div class="day-title">{{ day|date('d.m.Y - l') }}</div>
+                            <span style="color: var(--text-muted);">{{ sessions|length }} сеансов</span>
+                        </div>
+                        <div class="sessions-list">
+                            {% for session in sessions %}
+                            <div class="session-item">
+                                <div class="session-header">
+                                    <div class="session-movie">{{ session.movie.movieTitle }}</div>
+                                    <div class="session-time">{{ session.sessionData|date('H:i') }}</div>
+                                </div>
+                                <div class="session-details">
+                                    <div class="session-detail">
+                                        <div class="detail-label">Зал</div>
+                                        <div class="detail-value">{{ session.hall.id }}</div>
+                                    </div>
+                                    <div class="session-detail">
+                                        <div class="detail-label">Цена</div>
+                                        <div class="detail-value">{{ session.sessionPrice }} ₽</div>
+                                    </div>
+                                    <div class="session-detail">
+                                        <div class="detail-label">Продано</div>
+                                        <div class="detail-value">{{ session.tickets|length }}/{{ session.hall.hallCapacity }}</div>
+                                    </div>
+                                </div>
+                                <div class="session-actions">
+                                    <button class="btn btn-secondary btn-small" onclick="editSession({{ session.id }})">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteSession({{ session.id }})">Удалить</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Seat Occupancy Section -->
+            <section class="content-section" data-section="occupancy">
+                <h1 class="section-title">Проверка занятости мест</h1>
+                
+                <div class="hall-selector">
+                    {% for hall in halls %}
+                        <button class="hall-btn {{ loop.first ? 'active' : '' }}" data-hall="{{ hall.id }}">
+                            Зал {{ hall.id }} - {{ hall.hallType }}
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <div class="schedule-controls">
+                    <select class="form-select session-select" style="width: auto;" onchange="updateOccupancySeats()">
+                        <option value="" disabled selected>Выберите сеанс</option>
+                    </select>
+                </div>
+
+                <div class="occupancy-container">
+                    <div class="screen">
+                        <div class="screen-text">ЭКРАН</div>
+                    </div>
+
+                    <div class="seats-grid" id="occupancySeats">
+                        <!-- Места будут сгенерированы JavaScript -->
+                    </div>
+
+                    <div class="occupancy-legend">
+                        <div class="legend-item">
+                            <div class="legend-seat economy" style="background: var(--seat-economy); border-color: var(--seat-economy);"></div>
+                            <span>Эконом (свободно)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-seat regular" style="background: var(--seat-regular); border-color: var(--seat-regular);"></div>
+                            <span>Обычные (свободно)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-seat occupied" style="background: var(--seat-occupied); border-color: var(--seat-occupied);"></div>
+                            <span>Занятые</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <div id="occupancyStats" style="display: inline-block; background: var(--primary-dark); padding: 1rem; border-radius: 8px;">
+                            <strong>Статистика:</strong> Продано 0 из 0 мест (0% заполняемость)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Refunds Section -->
+            <section class="content-section" data-section="refunds">
+                <h1 class="section-title">Управление возвратами</h1>
+                
+                <div class="refunds-filter">
+                    <button class="filter-btn active" data-filter="all">Все заявки</button>
+                    <button class="filter-btn" data-filter="pending">На рассмотрении</button>
+                    <button class="filter-btn" data-filter="approved">Одобренные</button>
+                    <button class="filter-btn" data-filter="rejected">Отклонённые</button>
+                </div>
+
+                <div class="refunds-grid">
+                    {% for refund in refunds %}
+                    <div class="refund-card" data-status="{{ refund.refundStatus }}">
+                        <div class="refund-header">
+                            <div class="refund-id">Возврат #{{ refund.id }}</div>
+                            <span class="refund-status {{ refund.refundStatus }}">{{ refund.refundStatus|trans({
+                                'pending': 'На рассмотрении',
+                                'approved': 'Одобрен',
+                                'rejected': 'Отклонён'
+                            }) }}</span>
+                        </div>
+                        
+                        <div class="refund-details">
+                            <div class="session-detail">
+                                <div class="detail-label">Клиент</div>
+                                <div class="detail-value">{{ refund.goer.goerName }}</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Фильм</div>
+                                <div class="detail-value">{{ refund.ticket.session.movie.movieTitle }}</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Дата сеанса</div>
+                                <div class="detail-value">{{ refund.ticket.session.sessionData|date('d.m.Y в H:i') }}</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Сумма</div>
+                                <div class="detail-value">{{ refund.ticket.session.sessionPrice }} ₽</div>
+                            </div>
+                            <div class="session-detail">
+                                <div class="detail-label">Дата подачи</div>
+                                <div class="detail-value">{{ refund.refundDate|date('d.m.Y') }}</div>
+                            </div>
+                        </div>
+
+                        <div class="refund-reason">
+                            "{{ refund.refundReason }}"
+                        </div>
+
+                        {% if refund.refundStatus == 'pending' %}
+                        <div class="refund-actions">
+                            <button class="btn btn-success btn-small" onclick="approveRefund({{ refund.id }})">Одобрить</button>
+                            <button class="btn btn-danger btn-small" onclick="rejectRefund({{ refund.id }})">Отклонить</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Session Modal -->
+    <div class="modal" id="sessionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Добавить сеанс</h3>
+                <button class="modal-close" onclick="closeSessionModal()">×</button>
+            </div>
+            
+            <form id="sessionForm">
+                <input type="hidden" id="session_id" name="session_id">
+                <div class="form-group">
+                    <label class="form-label" for="movie_select">Фильм</label>
+                    <select id="movie_select" name="movie_select" class="form-select" required>
+                        <option value="" disabled selected>Выберите фильм</option>
+                        {% for movie in movies %}
+                            <option value="{{ movie.id }}">{{ movie.movieTitle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="hall_select">Зал</label>
+                    <select id="hall_select" name="hall_select" class="form-select" required>
+                        <option value="">Выберите зал</option>
+                        {% for hall in halls %}
+                            <option value="{{ hall.id }}">{{ hall.id }} - {{ hall.hallType }} ({{ hall.hallCapacity }} мест)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="session_date">Дата</label>
+                    <input type="date" id="session_date" name="session_date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="session_time">Время</label>
+                    <input type="time" id="session_time" name="session_time" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="session_price">Цена билета (₽)</label>
+                    <input type="number" id="session_price" name="session_price" class="form-input" min="100" max="1000" required>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSessionModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Добавить сеанс</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-linck').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links and sections
+                document.querySelectorAll('.nav-linck').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const sectionName = this.dataset.section;
+                document.querySelector(`.content-section[data-section="${sectionName}"]`).classList.add('active');
+            });
+        });
+
+        // Добавляем обработчик события change для form-select
+        document.querySelector('.form-select').addEventListener('change', function () {
+            const sessionId = this.value; // Получаем ID выбранного сеанса
+            if (sessionId) {
+                generateOccupancySeats(sessionId); // Вызываем функцию для отображения мест
+            }
+        });
+
+        // Обновляем функцию generateOccupancySeats
+        function generateOccupancySeats(hallId) {
+            console.log('Hall ID:', hallId); // Проверяем, что передается
+            const seatsGrid = document.getElementById('occupancySeats');
+            seatsGrid.innerHTML = '';
+
+            seatsGrid.style.display = 'grid';
+            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+            seatsGrid.style.gridTemplateRows = 'repeat(6, 1fr)';
+            seatsGrid.style.gap = '10px';
+
+            fetch(`/api/hall/${hallId}/seats`)
+                .then(response => {
+                    console.log('Response status:', response.status); // Проверяем статус ответа
+                    if (!response.ok) throw new Error('Hall not found');
+                    return response.json();
+                })
+                .then(seats => {
+                    console.log('Seats data:', seats); // Проверяем данные о местах
+                    seats.forEach(seat => {
+                        const seatElement = document.createElement('div');
+                        const seatType = seat.seatType;
+                        const isOccupied = seat.ticketStatus === 'occupied';
+                        
+                        seatElement.className = `seat ${seatType} ${isOccupied ? 'occupied' : ''}`;
+                        seatElement.textContent = seat.searNumber;
+                        seatsGrid.appendChild(seatElement);
+                    });
+                })
+                .catch(error => console.error('Ошибка при загрузке мест:', error));
+        }
+
+        // Hall selector
+        document.querySelectorAll('.hall-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.hall-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateSessionSelect(this.dataset.hall);
+            });
+        });
+
+
+        // Refund filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                const refunds = document.querySelectorAll('.refund-card[data-status]');
+                
+                refunds.forEach(refund => {
+                    if (filter === 'all' || refund.dataset.status === filter) {
+                        refund.style.display = 'block';
+                    } else {
+                        refund.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Generate occupancy seats
+        function generateOccupancySeats(hallId) {
+            const seatsGrid = document.getElementById('occupancySeats');
+            seatsGrid.innerHTML = '';
+
+            // Set grid layout to 5 columns and 6 rows
+            seatsGrid.style.display = 'grid';
+            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+            seatsGrid.style.gridTemplateRows = 'repeat(6, 1fr)';
+            seatsGrid.style.gap = '10px';
+
+            // Fetch seats data via AJAX
+            fetch(`/api/hall/${hallId}/seats`)
+            .then(response => response.json())
+            .then(seats => {
+                seats.forEach(seat => {
+                const seatElement = document.createElement('div');
+                const seatType = seat.seatType;
+                const isOccupied = seat.ticketStatus === 'occupied';
+                
+                seatElement.className = `seat ${seatType} ${isOccupied ? 'occupied' : ''}`;
+                seatElement.textContent = seat.searNumber;
+                
+                seatsGrid.appendChild(seatElement);
+                });
+            });
+        }
+
+        // Session modal functions
+        function openSessionModal(sessionId = null) {
+            const modal = document.getElementById('sessionModal');
+            const title = document.getElementById('modalTitle');
+            const submitBtn = document.getElementById('submitBtn');
+            const sessionIdInput = document.getElementById('session_id');
+            
+            if (sessionId) {
+                title.textContent = 'Редактировать сеанс';
+                submitBtn.textContent = 'Сохранить изменения';
+                sessionIdInput.value = sessionId; // Устанавливаем ID сеанса
+                // Заполняем форму данными сеанса
+                fetch(`/api/session/${sessionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('movie_select').value = data.movie.id;
+                        document.getElementById('hall_select').value = data.hall.id;
+                        document.getElementById('session_date').value = data.sessionData.split(' ')[0];
+                        document.getElementById('session_time').value = data.sessionData.split(' ')[1];
+                        document.getElementById('session_price').value = data.sessionPrice;
+                    })
+                    .catch(error => console.error('Ошибка при загрузке данных сеанса:', error));
+            } else {
+                title.textContent = 'Добавить сеанс';
+                submitBtn.textContent = 'Добавить сеанс';
+                sessionIdInput.value = ''; // Очищаем ID для создания
+                document.getElementById('sessionForm').reset();
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // Проверка занятости мест
+        function updateOccupancySeats() {
+            const sessionSelect = document.querySelector('.session-select');
+            const sessionId = sessionSelect.value;
+            const seatsGrid = document.getElementById('occupancySeats');
+            const occupancyStats = document.getElementById('occupancyStats');
+
+            if (!sessionId) {
+                seatsGrid.innerHTML = '<p>Выберите сеанс для отображения мест.</p>';
+                occupancyStats.textContent = 'Статистика: Выберите сеанс';
+                return;
+            }
+
+            seatsGrid.innerHTML = ''; // Очищаем сетку мест
+            seatsGrid.style.display = 'grid';
+            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)'; // Настройте под ваш зал
+            seatsGrid.style.gap = '10px';
+
+            fetch(`/api/session/${sessionId}/seats`)
+                .then(response => {
+                    if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Данные API:', data); // Отладка: выводим данные в консоль
+                    const seats = data.seats;
+                    const totalSeats = data.totalSeats;
+                    const occupiedSeats = data.occupiedSeats;
+
+                    seats.forEach(seat => {
+                        const seatElement = document.createElement('div');
+                        const isOccupied = seat.isOccupied; // Используем явное поле isOccupied
+                        seatElement.className = `seat ${seat.seatType} ${isOccupied ? 'occupied' : ''}`;
+                        seatElement.textContent = seat.searNumber;
+                        seatElement.title = `Ряд ${seat.seatRow}, Место ${seat.searNumber} (${seat.seatType}, ${seat.ticketStatus})`;
+                        seatsGrid.appendChild(seatElement);
+                    });
+
+                    const occupancyRate = totalSeats > 0 ? Math.round((occupiedSeats / totalSeats) * 100) : 0;
+                    occupancyStats.textContent = `Статистика: Продано ${occupiedSeats} из ${totalSeats} мест (${occupancyRate}% заполняемость)`;
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке мест:', error);
+                    seatsGrid.innerHTML = '<p>Ошибка при загрузке мест. Попробуйте снова.</p>';
+                    occupancyStats.textContent = 'Статистика: Ошибка загрузки';
+                });
+        }
+
+        // Обновление списка сеансов для выбранного зала
+        function updateSessionSelect(hallId) {
+            const sessionSelect = document.querySelector('.session-select');
+            sessionSelect.innerHTML = '<option value="" disabled selected>Выберите сеанс</option>';
+
+            fetch(`/api/hall/${hallId}/sessions`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Сеансы не найдены');
+                    return response.json();
+                })
+                .then(sessions => {
+                    sessions.forEach(session => {
+                        const option = document.createElement('option');
+                        option.value = session.id;
+                        option.textContent = `${session.sessionData} - ${session.movieTitle}`;
+                        sessionSelect.appendChild(option);
+                    });
+
+                    if (sessions.length > 0) {
+                        sessionSelect.value = sessions[0].id;
+                        updateOccupancySeats();
+                    } else {
+                        document.getElementById('occupancySeats').innerHTML = '<p>Нет доступных сеансов для этого зала.</p>';
+                        document.getElementById('occupancyStats').textContent = 'Статистика: Нет сеансов';
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке сеансов:', error);
+                    sessionSelect.innerHTML = '<option value="" disabled selected>Ошибка загрузки сеансов</option>';
+                });
+        }
+
+        document.getElementById('sessionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(document.getElementById('sessionForm'));
+            const data = Object.fromEntries(formData);
+            const sessionId = data.session_id;
+            
+            const url = sessionId ? `/api/session/${sessionId}` : '/api/session';
+            const method = sessionId ? 'PATCH' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка при сохранении сеанса');
+                    return response.json();
+                })
+                .then(() => {
+                    alert(sessionId ? 'Сеанс успешно обновлен!' : 'Сеанс успешно добавлен!');
+                    closeSessionModal();
+                    location.reload();
+                })
+                .catch(error => console.error('Ошибка:', error));
+        });
+
+        function closeSessionModal() {
+            document.getElementById('sessionModal').classList.remove('active');
+        }
+
+        function editSession(sessionId) {
+            openSessionModal(sessionId);
+        }
+
+        function deleteSession(sessionId) {
+            if (confirm('Вы уверены, что хотите удалить этот сеанс?')) {
+                fetch(`/api/session/${sessionId}`, { method: 'DELETE' })
+                    .then(() => {
+                        alert(`Сеанс #${sessionId} удален`);
+                        location.reload();
+                    });
+            }
+        }
+
+        // Refund actions
+        function approveRefund(refundId) {
+            if (confirm('Одобрить возврат билета?')) {
+                fetch(`/api/refund/${refundId}/approve`, { method: 'POST' })
+                    .then(() => {
+                        alert(`Возврат #${refundId} одобрен`);
+                        location.reload();
+                    });
+            }
+        }
+
+        function rejectRefund(refundId) {
+            const reason = prompt('Укажите причину отклонения:');
+            if (reason) {
+                fetch(`/api/refund/${refundId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                })
+                    .then(() => {
+                        alert(`Возврат #${refundId} отклонен. Причина: ${reason}`);
+                        location.reload();
+                    });
+            }
+        }
+
+        
+
+        // Close modal on outside click
+        document.getElementById('sessionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSessionModal();
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function () {
+            const activeHallBtn = document.querySelector('.hall-btn.active');
+            if (activeHallBtn) {
+                updateSessionSelect(activeHallBtn.dataset.hall);
+            }
+        });
+    </script>
+{% endblock %}

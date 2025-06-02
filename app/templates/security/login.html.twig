@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Вход - кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h1 class="auth-title">Вход в систему</h1>
+        <p class="auth-subtitle">Добро пожаловать в кинотеатр Сакура</p>
+    </div>
+    
+    <form class="auth-form" action="{{ path('login') }}" method="post">
+        <div class="form-group">
+            <label for="role" class="form-label">Выберите роль</label>
+            <select id="role" name="role" class="form-control form-select" required>
+                <option value="goer">Посетитель</option>
+                <option value="employee">Сотрудник</option>
+                <option value="admin">Администратор</option>
+            </select>
+        </div>
+        
+        <!-- Поля для посетителя -->
+        <div id="goer-fields">
+            <div class="form-group">
+                <label for="goer-email" class="form-label">Email</label>
+                <input type="email" id="goer-email" name="_username" class="form-control" placeholder="Введите ваш email" value="{{ last_username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="goer-password" class="form-label">Пароль</label>
+                <input type="password" id="goer-password" name="_password" class="form-control" placeholder="Введите ваш пароль" required>
+            </div>
+        </div>
+        
+        <!-- Поля для сотрудника -->
+        <div id="employee-fields" class="hidden">
+            <div class="form-group">
+                <label for="employee-login" class="form-label">Логин</label>
+                <input type="text" id="employee-login" name="_username" class="form-control" placeholder="Введите ваш логин" value="{{ last_username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="employee-password" class="form-label">Пароль</label>
+                <input type="password" id="employee-password" name="_password" class="form-control" placeholder="Введите ваш пароль" required>
+            </div>
+        </div>
+        
+        <!-- Поля для администратора -->
+        <div id="admin-fields" class="hidden">
+            <div class="form-group">
+                <label for="admin-login" class="form-label">Логин</label>
+                <input type="text" id="admin-login" name="_username" class="form-control" placeholder="Введите ваш логин" value="{{ last_username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-password" class="form-label">Пароль</label>
+                <input type="password" id="admin-password" name="_password" class="form-control" placeholder="Введите ваш пароль" required>
+            </div>
+        </div>
+
+        {% if error %}
+            <div class="form-error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+        {% endif %}
+
+        <div class="form-group">
+            <button type="submit" class="btn">Войти</button>
+        </div>
+    </form>
+    
+    <div class="auth-footer">
+        <p>Еще нет аккаунта? <a href="{{ path('register') }}">Зарегистрироваться</a></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/login.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Расписание сеансов - Кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/session.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Расписание сеансов</h1>
+    <p class="page-subtitle">Выберите удобное время для просмотра</p>
+</div>
+
+<div class="date-navigation">
+    <h3 class="date-nav-title">Выберите дату</h3>
+    <div class="date-tabs">
+        {% for date in availableDates %}
+            <a href="{{ path('session', { date: date|date('Y-m-d') }) }}" class="date-tab {{ date|date('Y-m-d') == selectedDate ? 'active' : '' }}">
+                <div class="date-tab-day">{{ date|date('l', 'Europe/Moscow')|trans({}, 'messages', 'ru') }}</div>
+                <div class="date-tab-date">{{ date|date('d.m') }}</div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="sessions-container">
+    {% for date, movies in groupedSessions %}
+        <div class="date-header">
+            <h2>{{ date|date('d.m.Y') }}</h2>
+        </div>
+        {% for movieTitle, sessions in movies %}
+            <div class="movie-session">
+                <div class="movie-session-header">
+                    <div class="movie-poster-small">
+                        <img src="{{ sessions[0].getMovie().getMoviePoster() }}" alt="Постер фильма">
+                    </div>
+                    <div class="movie-session-info">
+                        <h3 class="movie-session-title">{{ movieTitle }}</h3>
+                        <div class="movie-session-meta">
+                            <span class="movie-session-genre">{{ sessions[0].getMovie().getMovieGenre() }}</span>
+                            <span>{{ sessions[0].getMovie().getMovieDuration() }} мин</span>
+                            <span>{{ sessions[0].getMovie().getMovieAge() }}+</span>
+                            <span>{{ sessions[0].getMovie().getMovieFormat() }}</span>
+                        </div>
+                        <p class="movie-session-description">
+                            {{ sessions[0].getMovie().getMovieDescription() }}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="sessions-grid">
+                    {% for session in sessions %}
+                        <div class="session-card">
+                            <div class="session-time">{{ session.getSessionData()|date('H:i') }}</div>
+                            <div class="session-hall">Зал {{ session.getHall().getId() }} ({{ session.getHall().getHallType() }})</div>
+                            <div class="session-price">{{ session.getSessionPrice() }} ₽</div>
+                            <div class="session-seats">Свободно: {{ session.getHall().getSeats().count() - session.getTickets().count() }} мест</div>
+                            <a href="{{ path('ticket_purchase', { movieId: session.getMovie().getId() }) }}?sessionId={{ session.getId() }}&step=2" 
+                            class="session-btn {{ session.getHall().getSeats().count() - session.getTickets().count() == 0 ? 'disabled' : '' }}">
+                                {{ session.getHall().getSeats().count() - session.getTickets().count() == 0 ? 'Мест нет' : 'Купить билет' }}
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,701 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Личный кабинет - кинотеатр Сакура{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ "now"|date("U") }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h2 class="sidebar-title">Панель администратора</h2>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck active" data-section="dashboard">
+                            <span class="nav-icon">📊</span>
+                            <span>Дашборд</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="movies">
+                            <span class="nav-icon">🎬</span>
+                            <span>Фильмы</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="halls">
+                            <span class="nav-icon">🏛️</span>
+                            <span>Залы</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="employees">
+                            <span class="nav-icon">👥</span>
+                            <span>Сотрудники</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="pricing">
+                            <span class="nav-icon">💰</span>
+                            <span>Ценовая политика</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-linck" data-section="reports">
+                            <span class="nav-icon">📈</span>
+                            <span>Отчёты</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Dashboard Section -->
+            <section class="content-section active" data-section="dashboard">
+                <h1 class="section-title">Дашборд</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '156' }}</div>
+                        <div class="stat-label">Всего фильмов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '3' }}</div>
+                        <div class="stat-label">Активных залов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '8' }}</div>
+                        <div class="stat-label">Сотрудников</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '2.4М' }}</div>
+                        <div class="stat-label">Выручка (₽)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '12,450' }}</div>
+                        <div class="stat-label">Билетов продано</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '87%' }}</div>
+                        <div class="stat-label">Средняя заполняемость</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Movies Section -->
+            <section class="content-section" data-section="movies">
+                <h1 class="section-title">Управление фильмами</h1>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">Список фильмов</div>
+                        <div class="table-actions">
+                            <input type="text" class="search-input" placeholder="Поиск фильмов...">
+                            <button class="btn btn-primary" onclick="openMovieModal()">+ Добавить фильм</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Постер</th>
+                                <th>Название</th>
+                                <th>Жанр</th>
+                                <th>Длительность</th>
+                                <th>Возраст</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in 1..8 %}
+                            <tr>
+                                <td>
+                                    <img src="/placeholder.svg?height=60&width=40" alt="Постер" style="border-radius: 4px;">
+                                </td>
+                                <td>{{ ['Загадочный лес Сакуры', 'Тайна горы Фудзи', 'Весенний дождь', 'Осенние листья'][i % 4] }}</td>
+                                <td>{{ ['Драма', 'Триллер', 'Романтика', 'Комедия'][i % 4] }}</td>
+                                <td>{{ 120 + (i * 5) }} мин</td>
+                                <td>{{ [12, 16, 18, 6][i % 4] }}+</td>
+                                <td>
+                                    <span class="status-badge {{ ['active', 'upcoming', 'inactive'][i % 3] }}">
+                                        {{ ['Активный', 'Скоро', 'Неактивный'][i % 3] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary btn-small" onclick="editMovie({{ i }})">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteMovie({{ i }})">Удалить</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Halls Section -->
+            <section class="content-section" data-section="halls">
+                <h1 class="section-title">Управление залами</h1>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">Конфигурация залов</div>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" onclick="openHallModal()">+ Добавить зал</button>
+                        </div>
+                    </div>
+                    
+                    {% for i in 1..3 %}
+                    <div class="hall-config">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div>
+                                <h3 style="color: var(--accent-gold);">Зал {{ i }} - {{ ['2D', '3D', 'IMAX'][i-1] }}</h3>
+                                <p style="color: var(--text-secondary);">Вместимость: 30 мест • {{ ['Стандартный', 'Объёмный', 'Премиум'][i-1] }} формат</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary btn-small" onclick="editHall({{ i }})">Настроить</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteHall({{ i }})">Удалить</button>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <div style="background: var(--secondary-dark); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; color: var(--text-muted);">
+                                ЭКРАН
+                            </div>
+                            <div class="seat-grid">
+                                {% for j in 1..30 %}
+                                <div class="seat-preview {{ j <= 10 ? 'economy' : 'regular' }}">{{ j }}</div>
+                                {% endfor %}
+                            </div>
+                            <div style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                <span style="color: #4a90e2;">■</span> Эконом (10 мест) • 
+                                <span style="color: #50c878;">■</span> Обычные (20 мест)
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Employees Section -->
+            <section class="content-section" data-section="employees">
+                <h1 class="section-title">Управление сотрудниками</h1>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">Список сотрудников</div>
+                        <div class="table-actions">
+                            <input type="text" class="search-input" placeholder="Поиск сотрудников...">
+                            <button class="btn btn-primary" onclick="openEmployeeModal()">+ Добавить сотрудника</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Имя</th>
+                                <th>Логин</th>
+                                <th>Должность</th>
+                                <th>Дата найма</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in 1..6 %}
+                            <tr>
+                                <td>{{ ['Иван Петров', 'Мария Сидорова', 'Алексей Козлов', 'Елена Волкова', 'Дмитрий Орлов', 'Анна Лебедева'][i-1] }}</td>
+                                <td>{{ ['ivan.petrov', 'maria.sidorova', 'alexey.kozlov', 'elena.volkova', 'dmitry.orlov', 'anna.lebedeva'][i-1] }}</td>
+                                <td>{{ ['Менеджер', 'Кассир', 'Техник', 'Менеджер', 'Охранник', 'Уборщица'][i-1] }}</td>
+                                <td>{{ "now"|date_modify("-" ~ (i * 30) ~ " days")|date('d.m.Y') }}</td>
+                                <td>
+                                    <span class="status-badge active">Активный</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary btn-small" onclick="editEmployee({{ i }})">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteEmployee({{ i }})">Удалить</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Pricing Section -->
+            <section class="content-section" data-section="pricing">
+                <h1 class="section-title">Ценовая политика</h1>
+                
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <div class="pricing-title">Базовые цены по типам мест</div>
+                        <div class="price-item">
+                            <span class="price-label">Эконом места</span>
+                            <input type="number" class="price-input" value="350">
+                            <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">Обычные места</span>
+                            <input type="number" class="price-input" value="400">
+                            <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
+                        </div>
+                    </div>
+
+                    <div class="pricing-card">
+                        <div class="pricing-title">Надбавки по форматам</div>
+                        <div class="price-item">
+                            <span class="price-label">2D формат</span>
+                            <span class="price-value">Базовая цена</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">3D формат</span>
+                            <input type="number" class="price-input" value="100">
+                            <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">IMAX формат</span>
+                            <input type="number" class="price-input" value="200">
+                            <span style="color: var(--text-muted); margin-left: 0.5rem;">₽</span>
+                        </div>
+                    </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="btn btn-primary">Сохранить изменения</button>
+                    <button class="btn btn-secondary">Сбросить к умолчанию</button>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section class="content-section" data-section="reports">
+                <h1 class="section-title">Генерация отчётов</h1>
+                
+                <div class="report-filters">
+                    <select class="form-select" style="width: auto;">
+                        <option>Последние 7 дней</option>
+                        <option>Последний месяц</option>
+                        <option>Последние 3 месяца</option>
+                        <option>Текущий год</option>
+                        <option>Произвольный период</option>
+                    </select>
+                    <input type="date" class="form-input" style="width: auto;" value="{{ "now"|date_modify("-7 days")|date('Y-m-d') }}">
+                    <input type="date" class="form-input" style="width: auto;" value="{{ "now"|date('Y-m-d') }}">
+                    <button class="btn btn-primary">Обновить отчёт</button>
+                    <button class="btn btn-success">📊 Экспорт Excel</button>
+                    <button class="btn btn-secondary">📄 Экспорт PDF</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '1,245,600' }}</div>
+                        <div class="stat-label">Общая выручка (₽)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '3,124' }}</div>
+                        <div class="stat-label">Билетов продано</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '89%' }}</div>
+                        <div class="stat-label">Средняя заполняемость</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ '398' }}</div>
+                        <div class="stat-label">Средний чек (₽)</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">Детализация по фильмам</div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Фильм</th>
+                                <th>Сеансов</th>
+                                <th>Билетов продано</th>
+                                <th>Выручка</th>
+                                <th>Заполняемость</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in 1..5 %}
+                            <tr>
+                                <td>{{ ['Загадочный лес Сакуры', 'Тайна горы Фудзи', 'Весенний дождь', 'Осенние листья', 'Зимняя сказка'][i-1] }}</td>
+                                <td>{{ 15 + (i * 3) }}</td>
+                                <td>{{ 450 + (i * 120) }}</td>
+                                <td>{{ (450 + (i * 120)) * 400 }} ₽</td>
+                                <td>{{ 85 + i }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Movie Modal -->
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="movieModalTitle">Добавить фильм</h3>
+                <button class="modal-close" onclick="closeMovieModal()">&times;</button>
+            </div>
+            
+            <form id="movieForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="movie_title">Название фильма</label>
+                        <input type="text" id="movie_title" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="movie_genre">Жанр</label>
+                        <select id="movie_genre" class="form-select" required>
+                            <option value="">Выберите жанр</option>
+                            <option value="drama">Драма</option>
+                            <option value="comedy">Комедия</option>
+                            <option value="action">Боевик</option>
+                            <option value="thriller">Триллер</option>
+                            <option value="romance">Романтика</option>
+                            <option value="horror">Ужасы</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="movie_duration">Длительность (мин)</label>
+                        <input type="number" id="movie_duration" class="form-input" min="60" max="300" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="movie_age">Возрастное ограничение</label>
+                        <select id="movie_age" class="form-select" required>
+                            <option value="">Выберите возраст</option>
+                            <option value="0">0+</option>
+                            <option value="6">6+</option>
+                            <option value="12">12+</option>
+                            <option value="16">16+</option>
+                            <option value="18">18+</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="movie_format">Формат</label>
+                        <select id="movie_format" class="form-select" required>
+                            <option value="">Выберите формат</option>
+                            <option value="2D">2D</option>
+                            <option value="3D">3D</option>
+                            <option value="IMAX">IMAX</option>
+                            <option value="2D, 3D">2D, 3D</option>
+                            <option value="2D, 3D, IMAX">2D, 3D, IMAX</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="movie_status">Статус</label>
+                        <select id="movie_status" class="form-select" required>
+                            <option value="">Выберите статус</option>
+                            <option value="active">Активный</option>
+                            <option value="upcoming">Скоро</option>
+                            <option value="inactive">Неактивный</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="movie_poster">URL постера</label>
+                    <input type="url" id="movie_poster" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="movie_description">Описание</label>
+                    <textarea id="movie_description" class="form-textarea" rows="4"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeMovieModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="movieSubmitBtn">Добавить фильм</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hall Modal -->
+    <div class="modal" id="hallModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="hallModalTitle">Настройка зала</h3>
+                <button class="modal-close" onclick="closeHallModal()">&times;</button>
+            </div>
+            
+            <form id="hallForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="hall_type">Тип зала</label>
+                        <select id="hall_type" class="form-select" required>
+                            <option value="">Выберите тип</option>
+                            <option value="2D">2D</option>
+                            <option value="3D">3D</option>
+                            <option value="IMAX">IMAX</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="hall_capacity">Вместимость</label>
+                        <input type="number" id="hall_capacity" class="form-input" min="20" max="100" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="hall_rows">Количество рядов</label>
+                        <input type="number" id="hall_rows" class="form-input" min="3" max="10" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="seats_per_row">Мест в ряду</label>
+                        <input type="number" id="seats_per_row" class="form-input" min="4" max="12" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Распределение типов мест</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div>
+                            <label class="form-label" for="economy_seats">Эконом мест</label>
+                            <input type="number" id="economy_seats" class="form-input" min="0">
+                        </div>
+                        <div>
+                            <label class="form-label" for="regular_seats">Обычных мест</label>
+                            <input type="number" id="regular_seats" class="form-input" min="0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeHallModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="hallSubmitBtn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Employee Modal -->
+    <div class="modal" id="employeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="employeeModalTitle">Добавить сотрудника</h3>
+                <button class="modal-close" onclick="closeEmployeeModal()">&times;</button>
+            </div>
+            
+            <form id="employeeForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="employee_name">Полное имя</label>
+                        <input type="text" id="employee_name" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="employee_login">Логин</label>
+                        <input type="text" id="employee_login" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="employee_position">Должность</label>
+                        <select id="employee_position" class="form-select" required>
+                            <option value="">Выберите должность</option>
+                            <option value="manager">Менеджер</option>
+                            <option value="cashier">Кассир</option>
+                            <option value="technician">Техник</option>
+                            <option value="security">Охранник</option>
+                            <option value="cleaner">Уборщица</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="employee_password">Пароль</label>
+                        <input type="password" id="employee_password" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="employeeSubmitBtn">Добавить сотрудника</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-linck').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links and sections
+                document.querySelectorAll('.nav-linck').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const sectionName = this.dataset.section;
+                document.querySelector(`.content-section[data-section="${sectionName}"]`).classList.add('active');
+            });
+        });
+
+        // Movie Modal Functions
+        function openMovieModal(movieId = null) {
+            const modal = document.getElementById('movieModal');
+            const title = document.getElementById('movieModalTitle');
+            const submitBtn = document.getElementById('movieSubmitBtn');
+            
+            if (movieId) {
+                title.textContent = 'Редактировать фильм';
+                submitBtn.textContent = 'Сохранить изменения';
+                // Load movie data here
+            } else {
+                title.textContent = 'Добавить фильм';
+                submitBtn.textContent = 'Добавить фильм';
+                document.getElementById('movieForm').reset();
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeMovieModal() {
+            document.getElementById('movieModal').classList.remove('active');
+        }
+
+        function editMovie(movieId) {
+            openMovieModal(movieId);
+        }
+
+        function deleteMovie(movieId) {
+            if (confirm('Вы уверены, что хотите удалить этот фильм?')) {
+                alert(`Фильм #${movieId} удален`);
+            }
+        }
+
+        // Hall Modal Functions
+        function openHallModal(hallId = null) {
+            const modal = document.getElementById('hallModal');
+            const title = document.getElementById('hallModalTitle');
+            const submitBtn = document.getElementById('hallSubmitBtn');
+            
+            if (hallId) {
+                title.textContent = 'Редактировать зал';
+                submitBtn.textContent = 'Сохранить изменения';
+                // Load hall data here
+            } else {
+                title.textContent = 'Добавить зал';
+                submitBtn.textContent = 'Добавить зал';
+                document.getElementById('hallForm').reset();
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeHallModal() {
+            document.getElementById('hallModal').classList.remove('active');
+        }
+
+        function editHall(hallId) {
+            openHallModal(hallId);
+        }
+
+        function deleteHall(hallId) {
+            if (confirm('Вы уверены, что хотите удалить этот зал?')) {
+                alert(`Зал #${hallId} удален`);
+            }
+        }
+
+        // Employee Modal Functions
+        function openEmployeeModal(employeeId = null) {
+            const modal = document.getElementById('employeeModal');
+            const title = document.getElementById('employeeModalTitle');
+            const submitBtn = document.getElementById('employeeSubmitBtn');
+            
+            if (employeeId) {
+                title.textContent = 'Редактировать сотрудника';
+                submitBtn.textContent = 'Сохранить изменения';
+                // Load employee data here
+            } else {
+                title.textContent = 'Добавить сотрудника';
+                submitBtn.textContent = 'Добавить сотрудника';
+                document.getElementById('employeeForm').reset();
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').classList.remove('active');
+        }
+
+        function editEmployee(employeeId) {
+            openEmployeeModal(employeeId);
+        }
+
+        function deleteEmployee(employeeId) {
+            if (confirm('Вы уверены, что хотите удалить этого сотрудника?')) {
+                alert(`Сотрудник #${employeeId} удален`);
+            }
+        }
+
+        // Form submissions
+        document.getElementById('movieForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Фильм успешно сохранен!');
+            closeMovieModal();
+        });
+
+        document.getElementById('hallForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Зал успешно настроен!');
+            closeHallModal();
+        });
+
+        document.getElementById('employeeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Сотрудник успешно добавлен!');
+            closeEmployeeModal();
+        });
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // Search functionality
+        document.querySelectorAll('.search-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const table = this.closest('.table-container').querySelector('.data-table tbody');
+                const rows = table.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        });
+
+        // Price inputs validation
+        document.querySelectorAll('.price-input').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.value < 0) this.value = 0;
+                if (this.value > 10000) this.value = 10000;
+            });
+        });
+    </script>
+{% endblock %}
