@@ -1,24 +1,7 @@
 # 🎬 Кинотеатр "Сакура" — Автоматизированная информационная система
 
-<p align="center">
-  Кинотеатр Сакура
-</p>
-
-<p align="center">
-  <b>Веб-приложение для управления кинотеатром: бронирование мест, планирование сеансов, продажа билетов, аналитика.</b>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Kimitsuro/cinema">
-    <img src="https://img.shields.io/github/stars/Kimitsuro/cinema?style=social" alt="GitHub stars">
-  </a>
-  <a href="https://github.com/Kimitsuro/cinema">
-    <img src="https://img.shields.io/github/forks/Kimitsuro/cinema?style=social" alt="GitHub forks">
-  </a>
-  <a href="https://github.com/Kimitsuro/cinema">
-    <img src="https://img.shields.io/github/license/Kimitsuro/cinema?style=flat-square" alt="License">
-  </a>
-</p>
+Это веб-приложение для управления кинотеатром: планирование сеансов, продажа билетов, учет зрителей, аналитика.
+Разворачивается в среде Docker (PHP + Symfony, PostgreSQL, pgAdmin, Apache).
 
 ---
 
