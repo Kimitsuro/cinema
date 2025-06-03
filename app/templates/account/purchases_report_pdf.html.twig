@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет по покупкам билетов</title>
+    <style>
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: local('DejaVu Sans'), url('/vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 12px;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .total {
+            font-weight: bold;
+            text-align: right;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .period {
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет по покупкам билетов</h1>
+    <div class="period">
+        Период: {% if period == 'custom' %}{{ startDate }} - {{ endDate }}{% else %}{{ period }}{% endif %}
+        {% if movieId and purchases|length > 0 %}
+            <br>Фильм: {{ purchases|first.getTickets|first.getSession.getMovie.getMovieTitle }}
+        {% endif %}
+    </div>
+
+    {% if purchases|length > 0 %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Покупки</th>
+                    <th>Дата покупки</th>
+                    <th>Фильм</th>
+                    <th>Сеанс</th>
+                    <th>Место</th>
+                    <th>Тип места</th>
+                    <th>Цена (₽)</th>
+                    <th>Покупатель</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                    {% for ticket in purchase.tickets %}
+                        <tr>
+                            <td>{{ purchase.id }}</td>
+                            <td>{{ purchase.purchaseDate|date('d.m.Y H:i') }}</td>
+                            <td>{{ ticket.session.movie.movieTitle }}</td>
+                            <td>{{ ticket.session.sessionData|date('d.m.Y H:i') }}</td>
+                            <td>Ряд {{ ticket.seat.seatRow }}, Место {{ ticket.seat.searNumber }}</td>
+                            <td>{{ ticket.seat.seatType == 'economy' ? 'Эконом' : 'Обычное' }}</td>
+                            <td>{{ ticket.seat.seatType == 'economy' ? (ticket.session.sessionPrice * 0.8)|number_format(2, '.', ' ') : ticket.session.sessionPrice|number_format(2, '.', ' ') }}</td>
+                            <td>{{ purchase.goer.goerName }}</td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="no-data">
+            Нет данных за выбранный период
+        </div>
+    {% endif %}
+
+    <div class="total">
+        Общая выручка: {{ totalRevenue|number_format(2, '.', ' ') }} ₽
+    </div>
+</body>
+</html>

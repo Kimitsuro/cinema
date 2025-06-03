@@ -43,12 +43,17 @@ class AdminController extends AbstractController
         $period = $request->query->get('period', '7 days');
         $startDate = $request->query->get('startDate');
         $endDate = $request->query->get('endDate');
+        $movieId = $request->query->get('movieId'); // Получаем movieId из запроса
     
-        // Вычисляем статистику для дашборда с учётом периода
-        $stats = $this->getReportStats($sessionRepository, $ticketRepository, $purchaseRepository, $period, $startDate, $endDate);
-        $stats['totalMovies'] = $movieRepository->count([]);
-        $stats['activeHalls'] = $hallRepository->count([]);
-        $stats['totalEmployees'] = $employeeRepository->count([]);
+        // Вычисляем статистику для дашборда с учётом периода и фильма
+        $stats = [
+            'totalMovies' => $movieRepository->count([]),
+            'activeHalls' => $hallRepository->count([]),
+            'totalEmployees' => $employeeRepository->count([]),
+            'totalRevenue' => $this->calculateTotalRevenue($purchaseRepository),
+            'ticketsSold' => $ticketRepository->count(['ticketStatus' => 'paid']),
+            'averageOccupancy' => $this->calculateAverageOccupancy($sessionRepository, $ticketRepository, $hallRepository)
+        ];
     
         // Цены (заглушка, так как нет сущности Pricing)
         $pricing = [
@@ -59,8 +64,8 @@ class AdminController extends AbstractController
         ];
     
         // Отчёты за выбранный период
-        $reportStats = $this->getReportStats($sessionRepository, $ticketRepository, $purchaseRepository, $period, $startDate, $endDate);
-        $movieReports = $this->getMovieReports($sessionRepository, $ticketRepository, $purchaseRepository, $period, $startDate, $endDate);
+        $reportStats = $this->getReportStats($sessionRepository, $ticketRepository, $purchaseRepository, $period, $startDate, $endDate, $movieId);
+        $movieReports = $this->getMovieReports($sessionRepository, $ticketRepository, $purchaseRepository, $period, $startDate, $endDate, $movieId);
     
         return $this->render('account/admin_dashboard.html.twig', [
             'movies' => $movieRepository->findAll(),
@@ -407,25 +412,14 @@ class AdminController extends AbstractController
         return round($totalOccupancy / $sessionCount, 2);
     }
 
-    private function getReportStats(SessionRepository $sessionRepository, TicketRepository $ticketRepository, PurchaseRepository $purchaseRepository, string $period, ?string $startDate = null, ?string $endDate = null): array
+    private function getReportStats(SessionRepository $sessionRepository, TicketRepository $ticketRepository, PurchaseRepository $purchaseRepository, string $period, ?string $startDate = null, ?string $endDate = null, ?string $movieId = null): array
     {
-        $queryBuilder = $purchaseRepository->createQueryBuilder('p')
-            ->select('SUM(CASE WHEN st.seatType = :economy THEN s.sessionPrice * 0.8 ELSE s.sessionPrice END) as totalRevenue, COUNT(t.id) as ticketsSold')
-            ->join('p.tickets', 't')
-            ->join('t.session', 's')
-            ->join('t.seat', 'st')
-            ->where('t.ticketStatus = :status')
-            ->setParameter('status', 'paid')
-            ->setParameter('economy', 'economy');
-    
-        $endDateTime = new \DateTime(); // Сегодняшняя дата по умолчанию
+        // Установка временного диапазона
+        $endDateTime = new \DateTime();
         if ($period === 'custom' && $startDate && $endDate) {
             $startDateTime = new \DateTime($startDate);
             $endDateTime = new \DateTime($endDate);
-            $endDateTime->setTime(23, 59, 59); // Учитываем весь день
-            $queryBuilder->andWhere('p.purchaseDate BETWEEN :startDate AND :endDate')
-                         ->setParameter('startDate', $startDateTime)
-                         ->setParameter('endDate', $endDateTime);
+            $endDateTime->setTime(23, 59, 59);
         } else {
             $startDateTime = new \DateTime();
             switch ($period) {
@@ -442,9 +436,28 @@ class AdminController extends AbstractController
                     $startDateTime->modify('-1 year');
                     break;
             }
-            $queryBuilder->andWhere('p.purchaseDate BETWEEN :startDate AND :endDate')
-                         ->setParameter('startDate', $startDateTime)
-                         ->setParameter('endDate', $endDateTime);
+        }
+    
+        // Запрос для получения totalRevenue и ticketsSold
+        $queryBuilder = $purchaseRepository->createQueryBuilder('p')
+            ->select('SUM(CASE WHEN st.seatType = :economy THEN s.sessionPrice * 0.8 ELSE s.sessionPrice END) as totalRevenue, COUNT(t.id) as ticketsSold')
+            ->join('p.tickets', 't')
+            ->join('t.session', 's')
+            ->join('s.movie', 'm')
+            ->join('t.seat', 'st')
+            ->leftJoin('App\Entity\Refund', 'r', 'WITH', 'r.ticket = t.id AND r.refundStatus = :refunded')
+            ->where('t.ticketStatus IN (:statuses)')
+            ->andWhere('s.sessionData BETWEEN :startDate AND :endDate')
+            ->andWhere('r.id IS NULL') // Исключаем возвращённые билеты
+            ->setParameter('statuses', ['paid', 'rejected'])
+            ->setParameter('economy', 'economy')
+            ->setParameter('refunded', 'refunded')
+            ->setParameter('startDate', $startDateTime)
+            ->setParameter('endDate', $endDateTime);
+    
+        if ($movieId) {
+            $queryBuilder->andWhere('m.id = :movieId')
+                         ->setParameter('movieId', $movieId);
         }
     
         $result = $queryBuilder->getQuery()->getSingleResult();
@@ -452,14 +465,51 @@ class AdminController extends AbstractController
         $ticketsSold = (int)($result['ticketsSold'] ?? 0);
         $averageCheck = $ticketsSold > 0 ? round($totalRevenue / $ticketsSold, 2) : 0;
     
-        // Для отладки: выведем все покупки
+        // Запрос для получения сеансов
+        $sessionQueryBuilder = $sessionRepository->createQueryBuilder('s')
+            ->where('s.sessionData BETWEEN :startDate AND :endDate')
+            ->setParameter('startDate', $startDateTime)
+            ->setParameter('endDate', $endDateTime);
+    
+        if ($movieId) {
+            $sessionQueryBuilder->andWhere('s.movie = :movieId')
+                               ->setParameter('movieId', $movieId);
+        }
+    
+        $sessions = $sessionQueryBuilder->getQuery()->getResult();
+        $totalOccupancy = 0;
+        $sessionCount = count($sessions);
+    
+        foreach ($sessions as $session) {
+            $ticketsSoldForSession = $ticketRepository->createQueryBuilder('t')
+                ->select('COUNT(t.id)')
+                ->leftJoin('App\Entity\Refund', 'r', 'WITH', 'r.ticket = t.id AND r.refundStatus = :refunded')
+                ->where('t.session = :session')
+                ->andWhere('t.ticketStatus IN (:statuses)')
+                ->andWhere('r.id IS NULL')
+                ->setParameter('session', $session)
+                ->setParameter('statuses', ['paid', 'rejected'])
+                ->setParameter('refunded', 'refunded')
+                ->getQuery()
+                ->getSingleScalarResult();
+            $hallCapacity = $session->getHall()->getHallCapacity();
+            $occupancy = $hallCapacity > 0 ? ($ticketsSoldForSession / $hallCapacity) * 100 : 0;
+            $totalOccupancy += $occupancy;
+        }
+    
+        $averageOccupancy = $sessionCount > 0 ? round($totalOccupancy / $sessionCount, 2) : 0;
+    
+        // Для отладки: логируем покупки
         $purchases = $purchaseRepository->createQueryBuilder('p')
             ->join('p.tickets', 't')
             ->join('t.session', 's')
             ->join('t.seat', 'st')
-            ->where('t.ticketStatus = :status')
-            ->andWhere('p.purchaseDate BETWEEN :startDate AND :endDate')
-            ->setParameter('status', 'paid')
+            ->leftJoin('App\Entity\Refund', 'r', 'WITH', 'r.ticket = t.id AND r.refundStatus = :refunded')
+            ->where('t.ticketStatus IN (:statuses)')
+            ->andWhere('s.sessionData BETWEEN :startDate AND :endDate')
+            ->andWhere('r.id IS NULL')
+            ->setParameter('statuses', ['paid', 'rejected'])
+            ->setParameter('refunded', 'refunded')
             ->setParameter('startDate', $startDateTime)
             ->setParameter('endDate', $endDateTime)
             ->getQuery()
@@ -471,28 +521,9 @@ class AdminController extends AbstractController
                 $seat = $ticket->getSeat();
                 return $seat->getSeatType() === 'economy' ? $session->getSessionPrice() * 0.8 : $session->getSessionPrice();
             })->toArray();
-            $totalAmount = array_sum($ticketAmounts); // Суммируем цены билетов
+            $totalAmount = array_sum($ticketAmounts);
             error_log('Purchase ID: ' . $purchase->getId() . ', Date: ' . $purchase->getPurchaseDate()->format('Y-m-d H:i:s') . ', Amount: ' . $totalAmount . ', Tickets: ' . count($ticketAmounts));
         }
-    
-        $sessions = $sessionRepository->createQueryBuilder('s')
-            ->where('s.sessionData BETWEEN :startDate AND :endDate')
-            ->setParameter('startDate', $startDateTime)
-            ->setParameter('endDate', $endDateTime)
-            ->getQuery()
-            ->getResult();
-    
-        $totalOccupancy = 0;
-        $sessionCount = count($sessions);
-    
-        foreach ($sessions as $session) {
-            $ticketsSold = $ticketRepository->count(['session' => $session, 'ticketStatus' => 'paid']);
-            $hallCapacity = $session->getHall()->getHallCapacity();
-            $occupancy = $hallCapacity > 0 ? ($ticketsSold / $hallCapacity) * 100 : 0;
-            $totalOccupancy += $occupancy;
-        }
-    
-        $averageOccupancy = $sessionCount > 0 ? round($totalOccupancy / $sessionCount, 2) : 0;
     
         return [
             'totalRevenue' => $totalRevenue,
@@ -502,71 +533,89 @@ class AdminController extends AbstractController
         ];
     }
 
-    private function getMovieReports(SessionRepository $sessionRepository, TicketRepository $ticketRepository, PurchaseRepository $purchaseRepository, string $period, ?string $startDate = null, ?string $endDate = null): array
+    private function getMovieReports(SessionRepository $sessionRepository, TicketRepository $ticketRepository, PurchaseRepository $purchaseRepository, string $period, ?string $startDate = null, ?string $endDate = null, ?string $movieId = null): array
     {
-        // Получаем все фильмы и их сеансы
+        // Установка временного диапазона
+        $endDateTime = new \DateTime();
+        if ($period === 'custom' && $startDate && $endDate) {
+            $startDateTime = new \DateTime($startDate);
+            $endDateTime = new \DateTime($endDate);
+            $endDateTime->setTime(23, 59, 59);
+        } else {
+            $startDateTime = new \DateTime();
+            switch ($period) {
+                case '7 days':
+                    $startDateTime->modify('-7 days');
+                    break;
+                case '1 month':
+                    $startDateTime->modify('-1 month');
+                    break;
+                case '3 months':
+                    $startDateTime->modify('-3 months');
+                    break;
+                case '1 year':
+                    $startDateTime->modify('-1 year');
+                    break;
+            }
+        }
+    
+        // Запрос для получения данных по фильмам
         $queryBuilder = $sessionRepository->createQueryBuilder('s')
-            ->select('m.movieTitle, COUNT(DISTINCT s.id) as sessionCount, COALESCE(COUNT(t.id), 0) as ticketsSold, COALESCE(SUM(CASE WHEN st.seatType = :economy AND t.ticketStatus = :status THEN s.sessionPrice * 0.8 WHEN st.seatType = :regular AND t.ticketStatus = :status THEN s.sessionPrice ELSE 0 END), 0) as revenue')
+            ->select('m.movieTitle, m.id as movieId, COUNT(DISTINCT s.id) as sessionCount, COALESCE(COUNT(t.id), 0) as ticketsSold, COALESCE(SUM(CASE WHEN t.ticketStatus IN (:statuses) THEN (CASE WHEN st.seatType = :economy THEN s.sessionPrice * 0.8 ELSE s.sessionPrice END) ELSE 0 END), 0) as revenue')
             ->join('s.movie', 'm')
             ->leftJoin('s.tickets', 't')
             ->leftJoin('t.seat', 'st')
-            ->groupBy('m.id')
-            ->setParameter('status', 'paid')
+            ->leftJoin('App\Entity\Refund', 'r', 'WITH', 'r.ticket = t.id AND r.refundStatus = :refunded')
+            ->where('s.sessionData BETWEEN :startDate AND :endDate')
+            ->andWhere('t.ticketStatus IN (:statuses) OR t.id IS NULL')
+            ->andWhere('r.id IS NULL')
+            ->setParameter('statuses', ['paid', 'rejected'])
             ->setParameter('economy', 'economy')
-            ->setParameter('regular', 'regular');
-
-        if ($period !== 'custom' || !$startDate || !$endDate) {
-            $date = new \DateTime();
-            switch ($period) {
-                case '7 days':
-                    $date->modify('-7 days');
-                    break;
-                case '1 month':
-                    $date->modify('-1 month');
-                    break;
-                case '3 months':
-                    $date->modify('-3 months');
-                    break;
-                case '1 year':
-                    $date->modify('-1 year');
-                    break;
-            }
-            $queryBuilder->andWhere('s.sessionData >= :startDate')
-                         ->setParameter('startDate', $date);
-        } else {
-            $queryBuilder->andWhere('s.sessionData BETWEEN :startDate AND :endDate')
-                         ->setParameter('startDate', new \DateTime($startDate))
-                         ->setParameter('endDate', new \DateTime($endDate));
+            ->setParameter('refunded', 'refunded')
+            ->setParameter('startDate', $startDateTime)
+            ->setParameter('endDate', $endDateTime)
+            ->groupBy('m.id, m.movieTitle');
+    
+        if ($movieId) {
+            $queryBuilder->andWhere('m.id = :movieId')
+                         ->setParameter('movieId', $movieId);
         }
-
+    
         $results = $queryBuilder->getQuery()->getResult();
-
         $movieReports = [];
-
+    
         foreach ($results as $result) {
-            $sessionCount = (int)$result['sessionCount'];
-            $ticketsSold = (int)$result['ticketsSold'];
-            $hallCapacity = $sessionRepository->createQueryBuilder('s')
-                ->select('h.hallCapacity')
+            // Получаем все сеансы для фильма
+            $sessionsQuery = $sessionRepository->createQueryBuilder('s')
+                ->select('s, h')
                 ->join('s.hall', 'h')
-                ->join('s.movie', 'm')
-                ->where('m.movieTitle = :title')
-                ->setParameter('title', $result['movieTitle'])
-                ->setMaxResults(1)
+                ->where('s.movie = :movieId')
+                ->andWhere('s.sessionData BETWEEN :startDate AND :endDate')
+                ->setParameter('movieId', $result['movieId'])
+                ->setParameter('startDate', $startDateTime)
+                ->setParameter('endDate', $endDateTime)
                 ->getQuery()
-                ->getSingleScalarResult() ?? 1;
-
-            $occupancy = $sessionCount > 0 ? round(($ticketsSold / ($sessionCount * $hallCapacity)) * 100, 2) : 0;
-
+                ->getResult();
+    
+            $totalTicketsSold = (int)$result['ticketsSold'];
+            $sessionCount = (int)$result['sessionCount'];
+            $totalCapacity = 0;
+    
+            foreach ($sessionsQuery as $session) {
+                $totalCapacity += $session->getHall()->getHallCapacity();
+            }
+    
+            $occupancy = $sessionCount > 0 && $totalCapacity > 0 ? round(($totalTicketsSold / $totalCapacity) * 100, 2) : 0;
+    
             $movieReports[] = [
                 'movieTitle' => $result['movieTitle'],
                 'sessionCount' => $sessionCount,
-                'ticketsSold' => $ticketsSold,
+                'ticketsSold' => $totalTicketsSold,
                 'revenue' => (float)$result['revenue'],
                 'occupancy' => $occupancy
             ];
         }
-
+    
         return $movieReports;
     }
 
@@ -656,6 +705,107 @@ class AdminController extends AbstractController
         $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $response->headers->set('Content-Disposition', 'attachment; filename="report_' . date('Ymd_His') . '.xlsx"');
 
+        return $response;
+    }
+
+    #[Route('/admin/reports/purchases/pdf', name: 'app_admin_purchases_report_pdf', methods: ['GET'])]
+    public function exportPurchasesReportPdf(Request $request, SessionRepository $sessionRepository, TicketRepository $ticketRepository, PurchaseRepository $purchaseRepository): Response
+    {
+        $period = $request->query->get('period', '7 days');
+        $startDate = $request->query->get('startDate');
+        $endDate = $request->query->get('endDate');
+        $movieId = $request->query->get('movieId');
+    
+        // Установка временного диапазона
+        $startDateTime = new \DateTime();
+        $endDateTime = new \DateTime();
+        
+        if ($period === 'custom' && $startDate && $endDate) {
+            $startDateTime = new \DateTime($startDate);
+            $endDateTime = new \DateTime($endDate);
+            $endDateTime->setTime(23, 59, 59);
+        } else {
+            switch ($period) {
+                case '7 days':
+                    $startDateTime->modify('-7 days');
+                    break;
+                case '1 month':
+                    $startDateTime->modify('-1 month');
+                    break;
+                case '3 months':
+                    $startDateTime->modify('-3 months');
+                    break;
+                case '1 year':
+                    $startDateTime->modify('-1 year');
+                    break;
+            }
+        }
+    
+        // Получение данных о покупках
+        $queryBuilder = $purchaseRepository->createQueryBuilder('p')
+            ->select('p, t, s, m, st, g')
+            ->join('p.tickets', 't')
+            ->join('t.session', 's')
+            ->join('s.movie', 'm')
+            ->join('t.seat', 'st')
+            ->join('p.goer', 'g')
+            ->leftJoin('App\Entity\Refund', 'r', 'WITH', 'r.ticket = t.id AND r.refundStatus = :refunded')
+            ->where('t.ticketStatus IN (:statuses)')
+            ->andWhere('s.sessionData BETWEEN :startDate AND :endDate')
+            ->andWhere('r.id IS NULL')
+            ->setParameter('statuses', ['paid', 'rejected'])
+            ->setParameter('refunded', 'refunded')
+            ->setParameter('startDate', $startDateTime)
+            ->setParameter('endDate', $endDateTime);
+    
+        if ($movieId) {
+            $queryBuilder->andWhere('m.id = :movieId')
+                         ->setParameter('movieId', $movieId);
+        }
+    
+        $purchases = $queryBuilder->getQuery()->getResult();
+    
+        // Расчёт общей выручки
+        $totalRevenue = 0;
+        foreach ($purchases as $purchase) {
+            foreach ($purchase->getTickets() as $ticket) {
+                $price = $ticket->getSeat()->getSeatType() === 'economy' ? $ticket->getSession()->getSessionPrice() * 0.8 : $ticket->getSession()->getSessionPrice();
+                $totalRevenue += $price;
+            }
+        }
+    
+        // Для отладки: логируем покупки
+        foreach ($purchases as $purchase) {
+            $ticketAmounts = $purchase->getTickets()->map(function($ticket) {
+                $session = $ticket->getSession();
+                $seat = $ticket->getSeat();
+                return $seat->getSeatType() === 'economy' ? $session->getSessionPrice() * 0.8 : $session->getSessionPrice();
+            })->toArray();
+            $totalAmount = array_sum($ticketAmounts);
+            error_log('Purchase ID: ' . $purchase->getId() . ', Session Date: ' . $purchase->getTickets()->first()->getSession()->getSessionData()->format('Y-m-d H:i:s') . ', Amount: ' . $totalAmount . ', Tickets: ' . count($ticketAmounts));
+        }
+    
+        $html = $this->renderView('account/purchases_report_pdf.html.twig', [
+            'purchases' => $purchases,
+            'totalRevenue' => $totalRevenue,
+            'period' => $period,
+            'startDate' => $startDateTime->format('Y-m-d'),
+            'endDate' => $endDateTime->format('Y-m-d'),
+            'movieId' => $movieId
+        ]);
+    
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+    
+        $response = new StreamedResponse();
+        $response->setCallback(function () use ($dompdf) {
+            echo $dompdf->output();
+        });
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', 'attachment; filename="purchases_report_' . date('Ymd_His') . '.pdf"');
+    
         return $response;
     }
 }

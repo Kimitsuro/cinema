@@ -268,32 +268,39 @@
             <section class="content-section" data-section="reports">
                 <h1 class="section-title">Генерация отчётов</h1>
                 
-                <div class="report-filters">
-                    <select class="form-select" style="width: auto;" id="reportPeriod">
-                        <option value="7 days">Последние 7 дней</option>
-                        <option value="1 month">Последний месяц</option>
-                        <option value="3 months">Последние 3 месяца</option>
-                        <option value="1 year">Текущий год</option>
-                        <option value="custom">Произвольный период</option>
-                    </select>
-                    <input type="date" class="form-input" style="width: auto;" id="reportStartDate" value="{{ "now"|date_modify("-7 days")|date('Y-m-d') }}">
-                    <input type="date" class="form-input" style="width: auto;" id="reportEndDate" value="{{ "now"|date('Y-m-d') }}">
-                    <button class="btn btn-primary" onclick="updateReport()">Обновить отчёт</button>
-                    <button class="btn btn-success">📊 Экспорт Excel</button>
-                    <button class="btn btn-secondary export-pdf-btn">📄 Экспорт PDF</button>
-                </div>
+            <div class="report-filters">
+                <select class="form-select" style="width: auto;" id="reportPeriod">
+                    <option value="7 days">Последние 7 дней</option>
+                    <option value="1 month">Последний месяц</option>
+                    <option value="3 months">Последние 3 месяца</option>
+                    <option value="1 year">Текущий год</option>
+                    <option value="custom">Произвольный период</option>
+                </select>
 
+                <input type="date" class="form-input" style="width: auto;" id="reportStartDate" value="{{ "now"|date_modify("-7 days")|date('Y-m-d') }}">
+                <input type="date" class="form-input" style="width: auto;" id="reportEndDate" value="{{ "now"|date('Y-m-d') }}">
+                <button class="btn btn-success">📊 Экспорт Excel</button>
+                <button class="btn btn-secondary export-pdf-btn">📄 Экспорт PDF</button>
+                <button class="btn btn-secondary export-purchases-pdf-btn" onclick="exportPurchasesPdf()">📋 Отчет по покупкам (PDF)</button>
+                                <select class="form-select" style="width: auto; visibility: hidden;" id="reportMovie" >
+                    <option value="">Все фильмы</option>
+                    {% for movie in movies %}
+                        <option value="{{ movie.id }}">{{ movie.movieTitle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+                {#
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number">{{ reportStats.totalRevenue|number_format(0, '.', ' ') }} ₽</div>
+                        <div class="stat-number">{{ stats.totalRevenue|number_format(0, '.', ' ') }} ₽</div>
                         <div class="stat-label">Общая выручка</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ reportStats.ticketsSold }}</div>
+                        <div class="stat-number">{{ stats.ticketsSold }}</div>
                         <div class="stat-label">Билетов продано</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">{{ reportStats.averageOccupancy }}%</div>
+                        <div class="stat-number">{{ stats.averageOccupancy }}%</div>
                         <div class="stat-label">Средняя заполняемость</div>
                     </div>
                     <div class="stat-card">
@@ -301,34 +308,7 @@
                         <div class="stat-label">Средний чек</div>
                     </div>
                 </div>
-
-                <div class="table-container">
-                    <div class="table-header">
-                        <div class="table-title">Детализация по фильмам</div>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Фильм</th>
-                                <th>Сеансов</th>
-                                <th>Билетов продано</th>
-                                <th>Выручка</th>
-                                <th>Заполняемость</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for report in movieReports %}
-                            <tr>
-                                <td>{{ report.movieTitle }}</td>
-                                <td>{{ report.sessionCount }}</td>
-                                <td>{{ report.ticketsSold }}</td>
-                                <td>{{ report.revenue|number_format(0, '.', ' ') }} ₽</td>
-                                <td>{{ report.occupancy }}%</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                #}
             </section>
         </div>
     </main>
@@ -823,17 +803,40 @@
             }
         }
 
-        // Report functions
         function updateReport() {
             const period = document.getElementById('reportPeriod').value;
             const startDate = document.getElementById('reportStartDate').value;
             const endDate = document.getElementById('reportEndDate').value;
-            
-            fetch(`/admin/reports?period=${period}&startDate=${startDate}&endDate=${endDate}`)
+            const movieId = document.getElementById('reportMovie').value;
+
+            fetch(`/admin/reports?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Обновление отчёта через AJAX (для упрощения не реализовано, требуется динамическое обновление DOM)
-                    window.location.reload();
+                    // Обновляем статистику (stats-grid)
+                    document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-number').textContent = data.reportStats.totalRevenue.toLocaleString('ru-RU') + ' ₽';
+                    document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-number').textContent = data.reportStats.ticketsSold;
+                    document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-number').textContent = data.reportStats.averageOccupancy + '%';
+                    document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-number').textContent = data.reportStats.averageCheck + ' ₽';
+
+                    // Обновляем таблицу "Детализация по фильмам"
+                    const tbody = document.querySelector('.data-table tbody');
+                    tbody.innerHTML = ''; // Очищаем таблицу
+
+                    data.movieReports.forEach(report => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${report.movieTitle}</td>
+                            <td>${report.sessionCount}</td>
+                            <td>${report.ticketsSold}</td>
+                            <td>${report.revenue.toLocaleString('ru-RU')} ₽</td>
+                            <td>${report.occupancy}%</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при обновлении отчета:', error);
+                    alert('Ошибка при обновлении отчета');
                 });
         }
 
@@ -871,14 +874,42 @@
             const period = document.getElementById('reportPeriod').value;
             const startDate = document.getElementById('reportStartDate').value;
             const endDate = document.getElementById('reportEndDate').value;
-            window.location.href = `/admin/reports/export/excel?period=${period}&startDate=${startDate}&endDate=${endDate}`;
+            const movieId = document.getElementById('reportMovie').value;
+            window.location.href = `/admin/reports/export/excel?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`;
         });
 
         document.querySelector('.export-pdf-btn').addEventListener('click', function() {
             const period = document.getElementById('reportPeriod').value;
             const startDate = document.getElementById('reportStartDate').value;
             const endDate = document.getElementById('reportEndDate').value;
-            window.location.href = `/admin/reports/export/pdf?period=${period}&startDate=${startDate}&endDate=${endDate}`;
+            const movieId = document.getElementById('reportMovie').value;
+            window.location.href = `/admin/reports/export/pdf?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`;
         });
+        document.querySelector('.export-purchases-pdf-btn').addEventListener('click', function() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const movieId = document.getElementById('reportMovie').value;
+            window.location.href = `/admin/reports/purchases/pdf?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`;
+        });
+
+        function exportExcel() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const movieId = document.getElementById('reportMovie').value;
+            window.location.href = `/admin/reports/export/excel?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`;
+        }
+
+        function exportPdf() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const movieId = document.getElementById('reportMovie').value;
+            window.location.href = `/admin/reports/export/pdf?period=${period}&startDate=${startDate}&endDate=${endDate}&movieId=${movieId}`;
+        }
+
+        document.querySelector('.btn.btn-success').addEventListener('click', exportExcel);
+        document.querySelector('.export-pdf-btn').addEventListener('click', exportPdf);
     </script>
 {% endblock %}

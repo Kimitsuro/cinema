@@ -86,23 +86,50 @@ final class EmployeeDashboardController extends AbstractController
     public function getHallSeats(int $id): Response
     {
         $hall = $this->hallRepository->find($id);
-    
+        
         if (!$hall) {
             return $this->json(['error' => 'Зал не найден'], 404);
         }
-    
+        
         $seats = $hall->getSeats()->toArray();
         $seatData = array_map(function($seat) {
             $ticket = $this->ticketRepository->findOneBy(['seat' => $seat]);
             return [
                 'id' => $seat->getId(),
-                'searNumber' => $seat->getSearNumber(),
+                'seatNumber' => $seat->getSeatNumber(), // Исправлено: searNumber -> seatNumber
+                'seatRow' => $seat->getSeatRow(),
                 'seatType' => $seat->getSeatType(),
                 'ticketStatus' => $ticket ? $ticket->getTicketStatus() : 'free',
             ];
         }, $seats);
-    
+        
         return $this->json($seatData);
+    }
+
+    #[Route('/api/schedule', name: 'api_schedule', methods: ['GET'])]
+    public function getSchedule(Request $request): Response
+    {
+        $dateStr = $request->query->get('date', (new DateTime())->format('Y-m-d'));
+        $startDate = new DateTime($dateStr);
+        
+        $schedule = [];
+        for ($i = 0; $i < 3; $i++) {
+            $date = (clone $startDate)->modify("+$i days");
+            $sessions = $this->sessionRepository->findByDate($date);
+            $schedule[$date->format('d.m.Y')] = array_map(function ($session) {
+                return [
+                    'id' => $session->getId(),
+                    'movieTitle' => $session->getMovie()->getMovieTitle(),
+                    'sessionTime' => $session->getSessionData()->format('H:i'),
+                    'hallId' => $session->getHall()->getId(),
+                    'hallCapacity' => $session->getHall()->getHallCapacity(),
+                    'sessionPrice' => $session->getSessionPrice(),
+                    'ticketsSold' => count($session->getTickets()),
+                ];
+            }, $sessions);
+        }
+
+        return $this->json($schedule);
     }
 
     #[Route('/api/session/{id}', name: 'api_session', methods: ['GET'])]
@@ -157,6 +184,7 @@ final class EmployeeDashboardController extends AbstractController
                 'id' => $session->getId(),
                 'sessionData' => $session->getSessionData()->format('Y-m-d H:i'),
                 'movieTitle' => $session->getMovie()->getMovieTitle(),
+                'movieDuration' => $session->getMovie()->getMovieDuration(),
             ];
         }, $sessions);
 
@@ -167,17 +195,36 @@ final class EmployeeDashboardController extends AbstractController
     public function createSession(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
-        
+    
+        $movie = $this->movieRepository->find($data['movie_select']);
+        $hall = $this->hallRepository->find($data['hall_select']);
+        $sessionDateTime = new DateTime($data['session_date'] . ' ' . $data['session_time']);
+    
+        // Проверка конфликтов
+        $existingSessions = $this->sessionRepository->findBy(['hall' => $hall]);
+        foreach ($existingSessions as $session) {
+            $existingStart = $session->getSessionData();
+            $existingEnd = clone $existingStart;
+            $existingEnd->modify('+' . $session->getMovie()->getMovieDuration() . ' minutes');
+    
+            $newEnd = clone $sessionDateTime;
+            $newEnd->modify('+' . $movie->getMovieDuration() . ' minutes');
+    
+            if ($sessionDateTime < $existingEnd && $newEnd > $existingStart) {
+                return $this->json(['error' => 'Конфликт с существующим сеансом'], 400);
+            }
+        }
+    
         $session = new Session();
-        $session->setMovie($this->movieRepository->find($data['movie_select']));
-        $session->setHall($this->hallRepository->find($data['hall_select']));
-        $session->setSessionData(new DateTime($data['session_date'] . ' ' . $data['session_time']));
+        $session->setMovie($movie);
+        $session->setHall($hall);
+        $session->setSessionData($sessionDateTime);
         $session->setSessionPrice($data['session_price']);
         $session->setEmployee($this->getUser());
-
+    
         $this->entityManager->persist($session);
         $this->entityManager->flush();
-
+    
         return $this->json(['success' => true]);
     }
 
@@ -221,18 +268,53 @@ final class EmployeeDashboardController extends AbstractController
         if (!$session) {
             return $this->json(['error' => 'Сеанс не найден'], 404);
         }
-
+    
         $data = json_decode($request->getContent(), true);
-        
-        $session->setMovie($this->movieRepository->find($data['movie_select']));
-        $session->setHall($this->hallRepository->find($data['hall_select']));
-        $session->setSessionData(new DateTime($data['session_date'] . ' ' . $data['session_time']));
+        $movie = $this->movieRepository->find($data['movie_select']);
+        $hall = $this->hallRepository->find($data['hall_select']);
+        $sessionDateTime = new DateTime($data['session_date'] . ' ' . $data['session_time']);
+    
+        // Проверка конфликтов
+        $existingSessions = $this->sessionRepository->findBy(['hall' => $hall]);
+        foreach ($existingSessions as $existingSession) {
+            if ($existingSession->getId() === $id) continue; // Пропускаем текущий сеанс
+    
+            $existingStart = $existingSession->getSessionData();
+            $existingEnd = clone $existingStart;
+            $existingEnd->modify('+' . $existingSession->getMovie()->getMovieDuration() . ' minutes');
+    
+            $newEnd = clone $sessionDateTime;
+            $newEnd->modify('+' . $movie->getMovieDuration() . ' minutes');
+    
+            if ($sessionDateTime < $existingEnd && $newEnd > $existingStart) {
+                return $this->json(['error' => 'Конфликт с существующим сеансом'], 400);
+            }
+        }
+    
+        $session->setMovie($movie);
+        $session->setHall($hall);
+        $session->setSessionData($sessionDateTime);
         $session->setSessionPrice($data['session_price']);
         $session->setEmployee($this->getUser());
-
+    
         $this->entityManager->persist($session);
         $this->entityManager->flush();
-
+    
         return $this->json(['success' => true]);
+    }
+
+    #[Route('/api/movie/{id}', name: 'api_movie', methods: ['GET'])]
+    public function getMovie(int $id): Response
+    {
+        $movie = $this->movieRepository->find($id);
+        if (!$movie) {
+            return $this->json(['error' => 'Фильм не найден'], 404);
+        }
+
+        return $this->json([
+            'id' => $movie->getId(),
+            'movieTitle' => $movie->getMovieTitle(),
+            'movieDuration' => $movie->getMovieDuration(),
+        ]);
     }
 }

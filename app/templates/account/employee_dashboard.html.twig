@@ -95,53 +95,18 @@
             </section>
 
             <!-- Schedule Section -->
-            <section class="content-section" data-section="schedule">
-                <h1 class="section-title">Управление расписанием</h1>
-                
-                <div class="schedule-controls">
-                    <input type="date" class="date-picker" value="{{ "now"|date('Y-m-d') }}">
-                    <button class="btn btn-primary" onclick="openSessionModal()">+ Добавить сеанс</button>
-                </div>
+<section class="content-section" data-section="schedule">
+    <h1 class="section-title">Управление расписанием</h1>
+    
+    <div class="schedule-controls">
+        <input type="date" class="date-picker" value="{{ "now"|date('Y-m-d') }}">
+        <button class="btn btn-primary" onclick="openSessionModal()">+ Добавить сеанс</button>
+    </div>
 
-                <div class="schedule-grid">
-                    {% for day, sessions in schedule %}
-                    <div class="schedule-day">
-                        <div class="day-header">
-                            <div class="day-title">{{ day|date('d.m.Y - l') }}</div>
-                            <span style="color: var(--text-muted);">{{ sessions|length }} сеансов</span>
-                        </div>
-                        <div class="sessions-list">
-                            {% for session in sessions %}
-                            <div class="session-item">
-                                <div class="session-header">
-                                    <div class="session-movie">{{ session.movie.movieTitle }}</div>
-                                    <div class="session-time">{{ session.sessionData|date('H:i') }}</div>
-                                </div>
-                                <div class="session-details">
-                                    <div class="session-detail">
-                                        <div class="detail-label">Зал</div>
-                                        <div class="detail-value">{{ session.hall.id }}</div>
-                                    </div>
-                                    <div class="session-detail">
-                                        <div class="detail-label">Цена</div>
-                                        <div class="detail-value">{{ session.sessionPrice }} ₽</div>
-                                    </div>
-                                    <div class="session-detail">
-                                        <div class="detail-label">Продано</div>
-                                        <div class="detail-value">{{ session.tickets|length }}/{{ session.hall.hallCapacity }}</div>
-                                    </div>
-                                </div>
-                                <div class="session-actions">
-                                    <button class="btn btn-secondary btn-small" onclick="editSession({{ session.id }})">Изменить</button>
-                                    <button class="btn btn-danger btn-small" onclick="deleteSession({{ session.id }})">Удалить</button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </section>
+    <div class="schedule-grid">
+        <!-- Сеансы будут загружены динамически через JavaScript -->
+    </div>
+</section>
 
             <!-- Seat Occupancy Section -->
             <section class="content-section" data-section="occupancy">
@@ -326,16 +291,10 @@
         });
 
         // Добавляем обработчик события change для form-select
-        document.querySelector('.form-select').addEventListener('change', function () {
-            const sessionId = this.value; // Получаем ID выбранного сеанса
-            if (sessionId) {
-                generateOccupancySeats(sessionId); // Вызываем функцию для отображения мест
-            }
-        });
+
 
         // Обновляем функцию generateOccupancySeats
         function generateOccupancySeats(hallId) {
-            console.log('Hall ID:', hallId); // Проверяем, что передается
             const seatsGrid = document.getElementById('occupancySeats');
             seatsGrid.innerHTML = '';
 
@@ -346,23 +305,25 @@
 
             fetch(`/api/hall/${hallId}/seats`)
                 .then(response => {
-                    console.log('Response status:', response.status); // Проверяем статус ответа
                     if (!response.ok) throw new Error('Hall not found');
                     return response.json();
                 })
                 .then(seats => {
-                    console.log('Seats data:', seats); // Проверяем данные о местах
                     seats.forEach(seat => {
+                        console.log('Seats data:', seats);
                         const seatElement = document.createElement('div');
                         const seatType = seat.seatType;
                         const isOccupied = seat.ticketStatus === 'occupied';
                         
                         seatElement.className = `seat ${seatType} ${isOccupied ? 'occupied' : ''}`;
-                        seatElement.textContent = seat.searNumber;
+                        seatElement.textContent = seat.seatNumber; // Исправлено: seat.searNumber -> seat.seatNumber
                         seatsGrid.appendChild(seatElement);
                     });
                 })
-                .catch(error => console.error('Ошибка при загрузке мест:', error));
+                .catch(error => {
+                    console.error('Ошибка при загрузке мест:', error);
+                    seatsGrid.innerHTML = '<p>Ошибка загрузки мест</p>';
+                });
         }
 
         // Hall selector
@@ -370,7 +331,7 @@
             btn.addEventListener('click', function () {
                 document.querySelectorAll('.hall-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                updateSessionSelect(this.dataset.hall);
+                updateSessionSelect(this.dataset.hall); // Передаем hallId
             });
         });
 
@@ -394,33 +355,6 @@
             });
         });
 
-        // Generate occupancy seats
-        function generateOccupancySeats(hallId) {
-            const seatsGrid = document.getElementById('occupancySeats');
-            seatsGrid.innerHTML = '';
-
-            // Set grid layout to 5 columns and 6 rows
-            seatsGrid.style.display = 'grid';
-            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)';
-            seatsGrid.style.gridTemplateRows = 'repeat(6, 1fr)';
-            seatsGrid.style.gap = '10px';
-
-            // Fetch seats data via AJAX
-            fetch(`/api/hall/${hallId}/seats`)
-            .then(response => response.json())
-            .then(seats => {
-                seats.forEach(seat => {
-                const seatElement = document.createElement('div');
-                const seatType = seat.seatType;
-                const isOccupied = seat.ticketStatus === 'occupied';
-                
-                seatElement.className = `seat ${seatType} ${isOccupied ? 'occupied' : ''}`;
-                seatElement.textContent = seat.searNumber;
-                
-                seatsGrid.appendChild(seatElement);
-                });
-            });
-        }
 
         // Session modal functions
         function openSessionModal(sessionId = null) {
@@ -467,9 +401,9 @@
                 return;
             }
 
-            seatsGrid.innerHTML = ''; // Очищаем сетку мест
+            seatsGrid.innerHTML = '';
             seatsGrid.style.display = 'grid';
-            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)'; // Настройте под ваш зал
+            seatsGrid.style.gridTemplateColumns = 'repeat(5, 1fr)';
             seatsGrid.style.gap = '10px';
 
             fetch(`/api/session/${sessionId}/seats`)
@@ -478,16 +412,15 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Данные API:', data); // Отладка: выводим данные в консоль
                     const seats = data.seats;
                     const totalSeats = data.totalSeats;
                     const occupiedSeats = data.occupiedSeats;
 
                     seats.forEach(seat => {
                         const seatElement = document.createElement('div');
-                        const isOccupied = seat.isOccupied; // Используем явное поле isOccupied
+                        const isOccupied = seat.isOccupied;
                         seatElement.className = `seat ${seat.seatType} ${isOccupied ? 'occupied' : ''}`;
-                        seatElement.textContent = seat.searNumber;
+                        seatElement.textContent = seat.searNumber; // Исправлено: seat.searNumber -> seat.seatNumber
                         seatElement.title = `Ряд ${seat.seatRow}, Место ${seat.searNumber} (${seat.seatType}, ${seat.ticketStatus})`;
                         seatsGrid.appendChild(seatElement);
                     });
@@ -522,7 +455,7 @@
 
                     if (sessions.length > 0) {
                         sessionSelect.value = sessions[0].id;
-                        updateOccupancySeats();
+                        updateOccupancySeats(); // Вызываем для первого сеанса
                     } else {
                         document.getElementById('occupancySeats').innerHTML = '<p>Нет доступных сеансов для этого зала.</p>';
                         document.getElementById('occupancyStats').textContent = 'Статистика: Нет сеансов';
@@ -534,16 +467,64 @@
                 });
         }
 
-        document.getElementById('sessionForm').addEventListener('submit', function(e) {
+        // Функция проверки пересечения сеансов
+        function checkSessionConflict(hallId, sessionDate, sessionTime, movieDuration, excludeSessionId = null) {
+            return fetch(`/api/hall/${hallId}/sessions`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка загрузки сеансов');
+                    return response.json();
+                })
+                .then(sessions => {
+                    const newSessionStart = new Date(`${sessionDate}T${sessionTime}`);
+                    const newSessionEnd = new Date(newSessionStart.getTime() + movieDuration * 60000);
+
+                    for (const session of sessions) {
+                        // Пропускаем текущий сеанс при редактировании
+                        if (excludeSessionId && session.id == excludeSessionId) continue;
+
+                        const existingSessionStart = new Date(session.sessionData);
+                        const existingSessionEnd = new Date(existingSessionStart.getTime() + session.movieDuration * 60000);
+
+                        // Проверка пересечения
+                        if (newSessionStart < existingSessionEnd && newSessionEnd > existingSessionStart) {
+                            return { conflict: true, session: session };
+                        }
+                    }
+                    return { conflict: false };
+                })
+                .catch(error => {
+                    console.error('Ошибка при проверке конфликтов:', error);
+                    return { conflict: false, error: true };
+                });
+        }
+
+        // Обновленный обработчик отправки формы
+        document.getElementById('sessionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(document.getElementById('sessionForm'));
             const data = Object.fromEntries(formData);
             const sessionId = data.session_id;
-            
+            const hallId = data.hall_select;
+            const sessionDate = data.session_date;
+            const sessionTime = data.session_time;
+
+            // Получаем продолжительность фильма
+            const movieId = data.movie_select;
+            const movieResponse = await fetch(`/api/movie/${movieId}`);
+            const movieData = await movieResponse.json();
+            const movieDuration = movieData.movieDuration;
+
+            // Проверяем конфликты
+            const conflictCheck = await checkSessionConflict(hallId, sessionDate, sessionTime, movieDuration, sessionId);
+            if (conflictCheck.conflict) {
+                alert(`Конфликт с сеансом: "${conflictCheck.session.movieTitle}" в ${conflictCheck.session.sessionData}`);
+                return;
+            }
+
             const url = sessionId ? `/api/session/${sessionId}` : '/api/session';
             const method = sessionId ? 'PATCH' : 'POST';
-            
+
             fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
@@ -558,8 +539,12 @@
                     closeSessionModal();
                     location.reload();
                 })
-                .catch(error => console.error('Ошибка:', error));
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка при сохранении сеанса');
+                });
         });
+
 
         function closeSessionModal() {
             document.getElementById('sessionModal').classList.remove('active');
@@ -605,7 +590,76 @@
             }
         }
 
-        
+        function updateSchedule(selectedDate) {
+            const scheduleGrid = document.querySelector('.schedule-grid');
+            scheduleGrid.innerHTML = '<p>Загрузка сеансов...</p>';
+
+            // Запрашиваем сеансы, начиная с выбранной даты
+            fetch(`/api/schedule?date=${selectedDate}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка загрузки расписания');
+                    return response.json();
+                })
+                .then(schedule => {
+                    scheduleGrid.innerHTML = ''; // Очищаем сетку
+                    Object.keys(schedule).forEach(date => {
+                        const sessions = schedule[date];
+                        const dayElement = document.createElement('div');
+                        dayElement.className = 'schedule-day';
+
+                        const dayHeader = document.createElement('div');
+                        dayHeader.className = 'day-header';
+                        dayHeader.innerHTML = `
+                            <div class="day-title">${date}</div>
+                            <span style="color: var(--text-muted);">${sessions.length} сеансов</span>
+                        `;
+                        dayElement.appendChild(dayHeader);
+
+                        const sessionsList = document.createElement('div');
+                        sessionsList.className = 'sessions-list';
+                        sessions.forEach(session => {
+                            const sessionItem = document.createElement('div');
+                            sessionItem.className = 'session-item';
+                            sessionItem.innerHTML = `
+                                <div class="session-header">
+                                    <div class="session-movie">${session.movieTitle}</div>
+                                    <div class="session-time">${session.sessionTime}</div>
+                                </div>
+                                <div class="session-details">
+                                    <div class="session-detail">
+                                        <div class="detail-label">Зал</div>
+                                        <div class="detail-value">${session.hallId}</div>
+                                    </div>
+                                    <div class="session-detail">
+                                        <div class="detail-label">Цена</div>
+                                        <div class="detail-value">${session.sessionPrice} ₽</div>
+                                    </div>
+                                    <div class="session-detail">
+                                        <div class="detail-label">Продано</div>
+                                        <div class="detail-value">${session.ticketsSold}/${session.hallCapacity}</div>
+                                    </div>
+                                </div>
+                                <div class="session-actions">
+                                    <button class="btn btn-secondary btn-small" onclick="editSession(${session.id})">Изменить</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteSession(${session.id})">Удалить</button>
+                                </div>
+                            `;
+                            sessionsList.appendChild(sessionItem);
+                        });
+
+                        dayElement.appendChild(sessionsList);
+                        scheduleGrid.appendChild(dayElement);
+                    });
+
+                    if (Object.keys(schedule).length === 0) {
+                        scheduleGrid.innerHTML = '<p>Нет сеансов для выбранной даты.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке расписания:', error);
+                    scheduleGrid.innerHTML = '<p>Ошибка загрузки расписания</p>';
+                });
+        }
 
         // Close modal on outside click
         document.getElementById('sessionModal').addEventListener('click', function(e) {
@@ -613,13 +667,14 @@
                 closeSessionModal();
             }
         });
-
+        document.querySelector('.date-picker').addEventListener('change', function() {
+            const selectedDate = this.value; // Получаем выбранную дату
+            updateSchedule(selectedDate);
+        });
         // Initialize
         document.addEventListener('DOMContentLoaded', function () {
-            const activeHallBtn = document.querySelector('.hall-btn.active');
-            if (activeHallBtn) {
-                updateSessionSelect(activeHallBtn.dataset.hall);
-            }
+            const datePicker = document.querySelector('.date-picker');
+            updateSchedule(datePicker.value); // Загружаем расписание для текущей даты
         });
     </script>
 {% endblock %}
